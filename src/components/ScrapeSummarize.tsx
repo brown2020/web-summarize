@@ -45,6 +45,7 @@ export default function ScrapeSummarize() {
   const [url, setUrl] = useState("");
   const [language, setLanguage] = useState<Language>("english");
   const [modelName, setModelName] = useState<string>("gpt-4o");
+  const [numWords, setNumWords] = useState<number>(100); // New state for number of words
   const [summary, setSummary] = useState("");
   const [isPending, setIsPending] = useState(false);
 
@@ -62,8 +63,8 @@ export default function ScrapeSummarize() {
       const $ = load(html); // Corrected usage of cheerio
       const text = $("body").text().replace(/\s+/g, " ").trim();
 
-      // Use the server action to generate the summary
-      const result = await generateSummary(text, language, modelName);
+      // Use the server action to generate the summary with the specified number of words
+      const result = await generateSummary(text, language, modelName, numWords);
 
       // Stream the response to handle progressive updates
       for await (const content of readStreamableValue(result)) {
@@ -132,6 +133,20 @@ export default function ScrapeSummarize() {
           </label>
         </div>
 
+        <div>
+          <label>
+            Number of Words:
+            <input
+              type="number"
+              value={numWords}
+              onChange={(e) => setNumWords(Number(e.target.value))}
+              placeholder="Enter number of words"
+              className="w-full p-2 border rounded"
+              min={10} // Set a minimum value to avoid too short summaries
+            />
+          </label>
+        </div>
+
         <button
           type="submit"
           disabled={isPending}
@@ -142,7 +157,7 @@ export default function ScrapeSummarize() {
       </form>
 
       {summary && (
-        <div className="mt-4 p-5 bg-gray-100 rounded-md max-h-64 overflow-y-auto">
+        <div className="mt-4 p-5 bg-gray-100 rounded-md">
           <Markdown>{summary}</Markdown>
         </div>
       )}
