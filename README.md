@@ -1,6 +1,6 @@
 # Scrape and Summarize Webpage
 
-A Next.js 14 application that scrapes a webpage, processes the content, and generates a concise summary using AI. This project utilizes server actions, streaming responses, and dynamic state management to provide real-time content summarization.
+A Next.js 14 application that scrapes a webpage, processes the content, and generates a concise summary using AI. This project utilizes server actions, streaming responses, and dynamic state management to provide real-time content summarization. The app showcases how to effectively use the Vercel AI SDK to build an AI-powered summarization tool with a seamless user experience.
 
 ## Table of Contents
 
@@ -11,6 +11,8 @@ A Next.js 14 application that scrapes a webpage, processes the content, and gene
 - [Components](#components)
 - [API Routes](#api-routes)
 - [Technologies Used](#technologies-used)
+- [Using Vercel AI SDK](#using-vercel-ai-sdk)
+- [Streaming Technique](#streaming-technique)
 - [Contributing](#contributing)
 - [Contact](#contact)
 - [License](#license)
@@ -20,6 +22,7 @@ A Next.js 14 application that scrapes a webpage, processes the content, and gene
 - **Scrape Webpages:** Enter a URL to fetch and scrape content from the specified webpage.
 - **AI-Powered Summarization:** Leverage AI models to generate a summary in the desired language.
 - **Real-Time Streaming:** Display the summary in real-time as it's being generated.
+- **Progress Feedback:** Visual progress bar indicating the status of scraping and summarization.
 - **Multiple Languages Supported:** Choose from a variety of languages for summarization.
 - **Dynamic State Management:** Real-time updates using React state management.
 
@@ -45,11 +48,14 @@ A Next.js 14 application that scrapes a webpage, processes the content, and gene
    Create a `.env` file in the root directory and add the following environment variables:
 
    ```bash
-   FIREWORKS_API_KEY=your_api_key_here
-   NEXT_PUBLIC_BASE_URL=http://localhost:3000
+   OPENAI_API_KEY=your_openai_api_key
+   ANTHROPIC_API_KEY=your_anthropic_api_key
+   GOOGLE_GENERATIVE_AI_API_KEY=your_google_generative_ai_api_key
+   MISTRAL_API_KEY=your_mistral_api_key
+   FIREWORKS_API_KEY=your_fireworks_api_key
    ```
 
-   _(Replace `your_api_key_here` with your actual API key for the AI service.)_
+   _(Replace the placeholders with your actual API keys for the respective AI services.)_
 
 4. **Run the Development Server:**
 
@@ -63,8 +69,9 @@ A Next.js 14 application that scrapes a webpage, processes the content, and gene
 
 1. **Enter a Webpage URL:** Type or paste the URL of the webpage you want to scrape.
 2. **Select Language and Model:** Choose a language and AI model for the summarization.
-3. **Generate Summary:** Click the "Scrape and Summarize" button. The summary will be displayed in real-time as it's being generated.
-4. **View Results:** The results are shown in a clean and formatted way using Markdown.
+3. **Specify the Number of Words:** Input the desired word count for the summary.
+4. **Generate Summary:** Click the "Scrape and Summarize" button. The summary will be displayed in real-time as it's being generated.
+5. **View Results:** The results are shown in a clean and formatted way using Markdown.
 
 ## Folder Structure
 
@@ -76,7 +83,8 @@ scrape-and-summarize/
 │   │       └── route.ts          # API route to handle proxy requests
 │   └── page.tsx                  # Main application page
 ├── components/
-│   └── ScrapeSummarize.tsx       # Main React component for scraping and summarizing
+│   ├── ScrapeSummarize.tsx       # Main React component for scraping and summarizing
+│   └── ProgressBar.tsx           # Component for displaying progress during scraping and summarizing
 ├── lib/
 │   └── generateActions.ts        # Server actions for generating summaries
 ├── public/                       # Public assets
@@ -94,12 +102,14 @@ scrape-and-summarize/
 - Main component that handles:
   - User input for the webpage URL.
   - Language and model selection.
+  - Number of words for the summary.
   - Fetching, scraping, and summarizing the webpage content.
   - Displaying the real-time summary using a streaming response.
 
 ### `ProgressBar.tsx`
 
-- Optional component to show progress during the summarization process.
+- A reusable component that visually represents the progress of scraping and summarization processes.
+- Dynamically adjusts its width based on the progress value provided.
 
 ## API Routes
 
@@ -118,6 +128,49 @@ scrape-and-summarize/
 - **React Hot Toast**: For user notifications.
 - **Markdown Renderer**: For displaying the summarized content.
 - **OpenAI API**: For generating summaries with AI models.
+
+## Using Vercel AI SDK
+
+This project demonstrates how to use the **Vercel AI SDK** in a Next.js 14 application with server actions and streaming:
+
+- **Server Actions:** The `generateSummary` function in `lib/generateActions.ts` utilizes server actions to perform asynchronous AI model calls using various SDKs provided by Vercel AI, such as OpenAI, Anthropic, Mistral, and Google's Generative AI.
+- **Streaming Responses:** By using the `readStreamableValue` method from the SDK, the application streams the AI-generated summary in real-time. This allows for a responsive user experience where content is displayed progressively rather than waiting for the entire operation to complete.
+- **Dynamic Model Selection:** The app allows users to select different AI models (e.g., OpenAI's GPT, Google's Gemini, Anthropic's Claude) to generate summaries, showcasing the versatility of the Vercel AI SDK to interact with multiple AI providers through a unified interface.
+
+## Streaming Technique
+
+To implement real-time streaming in the application, the following technique is used:
+
+### Streaming Code Snippet
+
+```jsx
+// Stream the response to handle progressive updates
+let chunkCount = 0; // Initialize chunk counter
+for await (const content of readStreamableValue(result)) {
+  if (content) {
+    setSummary(content.trim()); // Directly update state with the latest content chunk
+    chunkCount++;
+    setProgress(70 + (chunkCount / numWords) * 30); // Update progress bar during summarizing
+  }
+}
+```
+
+### Explanation of the Streaming Technique
+
+1. **Initialize the Stream**:
+
+   - The function `readStreamableValue(result)` starts reading the streamed response from the AI model. This method returns an asynchronous iterator that allows for processing the streamed content as it arrives.
+
+2. **Handle Progressive Updates**:
+
+   - As each chunk of content (`content`) is received from the AI model, the `setSummary` function is called to update the application's state with the latest content. This ensures that the user sees the summary being generated in real-time, providing immediate feedback and a dynamic user experience.
+
+3. **Track Progress**:
+
+   - The `chunkCount` variable is incremented with each chunk received. The `setProgress` function is then called to update the progress bar dynamically. The formula `(70 + (chunkCount / numWords) * 30)` is used to adjust the progress bar to reflect the summarization progress from 70% to 100%, assuming that scraping accounts for the first 70% of the task.
+
+4. **Smooth User Experience**:
+   - By incrementally updating both the summary content and the progress bar, the application maintains a smooth and responsive interface that keeps the user informed of the ongoing process.
 
 ## Contributing
 

@@ -7,6 +7,7 @@ import { generateSummary } from "@/actions/generateActions"; // Import the serve
 import { readStreamableValue } from "ai/rsc";
 import { toast } from "react-hot-toast"; // Import react-hot-toast
 import Markdown from "react-markdown";
+import ProgressBar from "@/components/ProgressBar"; // Import the ProgressBar component
 
 type Language =
   | "english"
@@ -48,28 +49,38 @@ export default function ScrapeSummarize() {
   const [numWords, setNumWords] = useState<number>(100); // New state for number of words
   const [summary, setSummary] = useState("");
   const [isPending, setIsPending] = useState(false);
+  const [progress, setProgress] = useState<number>(0); // State for progress bar
 
   const handleScrapeAndSummarize = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsPending(true);
     setSummary(""); // Clear previous summary
+    setProgress(0); // Reset progress bar
 
     try {
-      // Make a request to the proxy API to fetch webpage content
+      // Simulate the progress for scraping (50% of total progress)
+      setProgress(20); // Start scraping
       const response = await axios.get(
         `/api/proxy?url=${encodeURIComponent(url)}`
       );
+      setProgress(50); // Halfway done with scraping
+
+      // Process the scraped content
       const html = response.data;
       const $ = load(html); // Corrected usage of cheerio
       const text = $("body").text().replace(/\s+/g, " ").trim();
+      setProgress(70); // Completed scraping, moving to summarizing
 
       // Use the server action to generate the summary with the specified number of words
       const result = await generateSummary(text, language, modelName, numWords);
 
       // Stream the response to handle progressive updates
+      let chunkCount = 0; // Initialize chunk counter
       for await (const content of readStreamableValue(result)) {
         if (content) {
           setSummary(content.trim()); // Directly update state with the latest content chunk
+          chunkCount++;
+          setProgress(70 + (chunkCount / numWords) * 30); // Update progress bar during summarizing
         }
       }
 
@@ -79,6 +90,7 @@ export default function ScrapeSummarize() {
       toast.error("Failed to generate summary");
     } finally {
       setIsPending(false);
+      setProgress(100); // Set progress to 100% once completed
     }
   };
 
@@ -155,6 +167,9 @@ export default function ScrapeSummarize() {
           {isPending ? "Summarizing..." : "Scrape and Summarize"}
         </button>
       </form>
+
+      {/* Use the ProgressBar component */}
+      {isPending && <ProgressBar progress={progress} />}
 
       {summary && (
         <div className="mt-4 p-5 bg-gray-100 rounded-md">

@@ -63,7 +63,7 @@ export async function generateSummary(
   modelName: string,
   numWords: number
 ) {
-  const systemPrompt = `You are a helpful summarization and translation assistant. Your job is to generate a summary of the provided document in the provided language. The summary should be concise, informative, and ${numWords} words or less.`;
+  const systemPrompt = `You are a helpful summarization and translation assistant. Your job is to generate a summary of the provided document in the provided language. The summary should be concise, informative, and ${numWords} words or less. Present the summary without introduction and without saying that it is a summary.`;
   const userPrompt = `Provided document:\n${document}\n\nProvided language:\n${language}`;
   return generateResponse(systemPrompt, userPrompt, modelName);
 }
