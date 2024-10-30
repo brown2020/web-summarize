@@ -34,12 +34,27 @@ const languages: Language[] = [
   "japanese",
 ];
 
-const modelNames = [
-  { value: "gpt-4o", label: "GPT-4o" },
+export const modelOptions = [
+  { value: "gpt-4o", label: "GPT 4 Omni" },
+
   { value: "gemini-1.5-pro", label: "Gemini 1.5 Pro" },
-  { value: "mistral-large", label: "Mistral Large" },
+
   { value: "claude-3-5-sonnet", label: "Claude 3.5 Sonnet" },
-  { value: "llama-v3p1-405b", label: "LLaMA v3p1 405b" },
+
+  {
+    value: "llama-v3p1-405b",
+    label: "Llama 3.1 405B Instruct",
+  },
+
+  {
+    value: "mistral-large",
+    label: "Mistral Large",
+  },
+
+  {
+    value: "xai-grok",
+    label: "xAI Grok Beta",
+  },
 ];
 
 export default function ScrapeSummarize() {
@@ -136,7 +151,7 @@ export default function ScrapeSummarize() {
               onChange={(e) => setModelName(e.target.value)}
               className="w-full p-2 border rounded"
             >
-              {modelNames.map((model) => (
+              {modelOptions.map((model) => (
                 <option key={model.value} value={model.value}>
                   {model.label}
                 </option>

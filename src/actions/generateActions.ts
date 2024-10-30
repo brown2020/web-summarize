@@ -12,18 +12,37 @@ const fireworks = createOpenAI({
   baseURL: "https://api.fireworks.ai/inference/v1",
 });
 
+const xai = createOpenAI({
+  name: "xai",
+  baseURL: "https://api.x.ai/v1",
+  apiKey: process.env.XAI_API_KEY ?? "",
+});
+
 async function getModel(modelName: string) {
   switch (modelName) {
     case "gpt-4o":
+      console.log("using gpt-4o");
       return openai("gpt-4o");
+
     case "gemini-1.5-pro":
+      console.log("using gemini-1.5-pro");
       return google("models/gemini-1.5-pro-latest");
-    case "mistral-large":
-      return mistral("mistral-large-latest");
+
     case "claude-3-5-sonnet":
-      return anthropic("claude-3-5-sonnet-20241022");
+      console.log("using claude-3-5-sonnet");
+      return anthropic("claude-3-5-sonnet-20240620");
+
+    case "mistral-large":
+      console.log("using mistral-large");
+      return mistral("mistral-large-latest");
+
     case "llama-v3p1-405b":
+      console.log("using llama-v3p1-405b");
       return fireworks("accounts/fireworks/models/llama-v3p1-405b-instruct");
+
+    case "xai-grok":
+      console.log("using xai-grok");
+      return xai("grok-beta");
 
     default:
       throw new Error(`Unsupported model name: ${modelName}`);
