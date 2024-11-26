@@ -67,7 +67,7 @@ async function generateResponse(
     },
   ];
 
-  const result = await streamText({
+  const result = streamText({
     model,
     messages,
   });
