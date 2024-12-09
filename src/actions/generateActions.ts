@@ -30,7 +30,7 @@ async function getModel(modelName: string) {
 
     case "claude-3-5-sonnet":
       console.log("using claude-3-5-sonnet");
-      return anthropic("claude-3-5-sonnet-20240620");
+      return anthropic("claude-3-5-sonnet-20241022");
 
     case "mistral-large":
       console.log("using mistral-large");
