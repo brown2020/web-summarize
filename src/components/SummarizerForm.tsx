@@ -36,7 +36,7 @@ export function SummarizerForm({
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="Enter a webpage URL"
-            className="w-full p-2 border rounded"
+            className="w-full p-2 border rounded-sm"
           />
         </label>
       </div>
@@ -47,7 +47,7 @@ export function SummarizerForm({
           <select
             value={language}
             onChange={(e) => setLanguage(e.target.value as Language)}
-            className="w-full p-2 border rounded"
+            className="w-full p-2 border rounded-sm"
           >
             {LANGUAGES.map((lang) => (
               <option key={lang} value={lang}>
@@ -64,7 +64,7 @@ export function SummarizerForm({
           <select
             value={modelName}
             onChange={(e) => setModelName(e.target.value)}
-            className="w-full p-2 border rounded"
+            className="w-full p-2 border rounded-sm"
           >
             {MODEL_OPTIONS.map((model) => (
               <option key={model.value} value={model.value}>
@@ -83,7 +83,7 @@ export function SummarizerForm({
             value={numWords}
             onChange={(e) => setNumWords(Number(e.target.value))}
             placeholder="Enter number of words"
-            className="w-full p-2 border rounded"
+            className="w-full p-2 border rounded-sm"
             min={10}
           />
         </label>
@@ -92,7 +92,7 @@ export function SummarizerForm({
       <button
         type="submit"
         disabled={isPending}
-        className="p-2 bg-blue-500 text-white rounded"
+        className="p-2 bg-blue-500 text-white rounded-sm"
       >
         {isPending ? "Summarizing..." : "Scrape and Summarize"}
       </button>
