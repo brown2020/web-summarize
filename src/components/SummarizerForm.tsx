@@ -1,5 +1,6 @@
 import { Language } from "@/types/summarizer";
 import { LANGUAGES, MODEL_OPTIONS } from "@/constants/summarizer";
+import { useState } from "react";
 
 type SummarizerFormProps = {
   url: string;
@@ -26,19 +27,68 @@ export function SummarizerForm({
   isPending,
   onSubmit,
 }: SummarizerFormProps) {
+  const [urlError, setUrlError] = useState<string>("");
+
+  const validateUrl = (value: string) => {
+    setUrl(value);
+
+    if (!value) {
+      setUrlError("URL is required");
+      return;
+    }
+
+    try {
+      // Try parsing as a URL
+      new URL(value);
+      setUrlError("");
+    } catch {
+      // Check if it might be valid with https:// prefix
+      try {
+        new URL(`https://${value}`);
+        setUrlError("");
+      } catch {
+        setUrlError("Please enter a valid URL (e.g., https://example.com)");
+      }
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Final validation before submission
+    try {
+      new URL(url);
+    } catch {
+      // Try with https:// prefix
+      try {
+        const prefixedUrl = `https://${url}`;
+        new URL(prefixedUrl);
+        setUrl(prefixedUrl);
+      } catch {
+        setUrlError("Please enter a valid URL (e.g., https://example.com)");
+        return;
+      }
+    }
+
+    onSubmit(e);
+  };
+
   return (
-    <form className="flex flex-col gap-4" onSubmit={onSubmit}>
+    <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
       <div>
         <label>
           Webpage URL:
           <input
             type="text"
             value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            placeholder="Enter a webpage URL"
-            className="w-full p-2 border rounded-sm"
+            onChange={(e) => validateUrl(e.target.value)}
+            placeholder="Enter a webpage URL (e.g., https://example.com)"
+            className={`w-full p-2 border rounded-sm ${
+              urlError ? "border-red-500" : ""
+            }`}
           />
         </label>
+        {urlError && <p className="text-red-500 text-sm mt-1">{urlError}</p>}
       </div>
 
       <div>
@@ -91,8 +141,10 @@ export function SummarizerForm({
 
       <button
         type="submit"
-        disabled={isPending}
-        className="p-2 bg-blue-500 text-white rounded-sm"
+        disabled={isPending || !!urlError}
+        className={`p-2 ${
+          isPending || !!urlError ? "bg-gray-400" : "bg-blue-500"
+        } text-white rounded-sm`}
       >
         {isPending ? "Summarizing..." : "Scrape and Summarize"}
       </button>
