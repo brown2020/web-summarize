@@ -1,5 +1,7 @@
 import { Language } from "@/types/summarizer";
 import { LANGUAGES, MODEL_OPTIONS } from "@/constants/summarizer";
+import { VALIDATION } from "@/constants/app";
+import { validateAndNormalizeUrl } from "@/utils/url-validation";
 import { useState } from "react";
 
 type SummarizerFormProps = {
@@ -30,25 +32,14 @@ export function SummarizerForm({
   const [urlError, setUrlError] = useState<string>("");
 
   const validateUrl = (value: string) => {
-    setUrl(value);
-
-    if (!value) {
-      setUrlError("URL is required");
-      return;
-    }
-
-    try {
-      // Try parsing as a URL
-      new URL(value);
+    setUrl(value); // Always set the raw value as user types
+    
+    // Only validate for error display, don't normalize during typing
+    const validation = validateAndNormalizeUrl(value);
+    if (validation.isValid) {
       setUrlError("");
-    } catch {
-      // Check if it might be valid with https:// prefix
-      try {
-        new URL(`https://${value}`);
-        setUrlError("");
-      } catch {
-        setUrlError("Please enter a valid URL (e.g., https://example.com)");
-      }
+    } else {
+      setUrlError(validation.error || "Invalid URL");
     }
   };
 
@@ -56,18 +47,14 @@ export function SummarizerForm({
     e.preventDefault();
 
     // Final validation before submission
-    try {
-      new URL(url);
-    } catch {
-      // Try with https:// prefix
-      try {
-        const prefixedUrl = `https://${url}`;
-        new URL(prefixedUrl);
-        setUrl(prefixedUrl);
-      } catch {
-        setUrlError("Please enter a valid URL (e.g., https://example.com)");
-        return;
-      }
+    const validation = validateAndNormalizeUrl(url);
+    if (!validation.isValid) {
+      setUrlError(validation.error || "Invalid URL");
+      return;
+    }
+
+    if (validation.normalizedUrl && validation.normalizedUrl !== url) {
+      setUrl(validation.normalizedUrl);
     }
 
     onSubmit(e);
@@ -76,78 +63,101 @@ export function SummarizerForm({
   return (
     <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
       <div>
-        <label>
+        <label htmlFor="url-input" className="block text-sm font-medium mb-1">
           Webpage URL:
-          <input
-            type="text"
-            value={url}
-            onChange={(e) => validateUrl(e.target.value)}
-            placeholder="Enter a webpage URL (e.g., https://example.com)"
-            className={`w-full p-2 border rounded-sm ${
-              urlError ? "border-red-500" : ""
-            }`}
-          />
         </label>
-        {urlError && <p className="text-red-500 text-sm mt-1">{urlError}</p>}
+        <input
+          id="url-input"
+          type="url"
+          value={url}
+          onChange={(e) => validateUrl(e.target.value)}
+          placeholder="Enter a webpage URL (e.g., https://example.com)"
+          className={`w-full p-2 border rounded-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+            urlError ? "border-red-500" : "border-gray-300"
+          }`}
+          aria-describedby={urlError ? "url-error" : undefined}
+          aria-invalid={!!urlError}
+        />
+        {urlError && (
+          <p id="url-error" className="text-red-500 text-sm mt-1" role="alert">
+            {urlError}
+          </p>
+        )}
       </div>
 
       <div>
-        <label>
+        <label htmlFor="language-select" className="block text-sm font-medium mb-1">
           Select Language:
-          <select
-            value={language}
-            onChange={(e) => setLanguage(e.target.value as Language)}
-            className="w-full p-2 border rounded-sm"
-          >
-            {LANGUAGES.map((lang) => (
-              <option key={lang} value={lang}>
-                {lang.charAt(0).toUpperCase() + lang.slice(1)}
-              </option>
-            ))}
-          </select>
         </label>
+        <select
+          id="language-select"
+          value={language}
+          onChange={(e) => setLanguage(e.target.value as Language)}
+          className="w-full p-2 border border-gray-300 rounded-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        >
+          {LANGUAGES.map((lang) => (
+            <option key={lang} value={lang}>
+              {lang.charAt(0).toUpperCase() + lang.slice(1)}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div>
-        <label>
+        <label htmlFor="model-select" className="block text-sm font-medium mb-1">
           Select Model:
-          <select
-            value={modelName}
-            onChange={(e) => setModelName(e.target.value)}
-            className="w-full p-2 border rounded-sm"
-          >
-            {MODEL_OPTIONS.map((model) => (
-              <option key={model.value} value={model.value}>
-                {model.label}
-              </option>
-            ))}
-          </select>
         </label>
+        <select
+          id="model-select"
+          value={modelName}
+          onChange={(e) => setModelName(e.target.value)}
+          className="w-full p-2 border border-gray-300 rounded-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        >
+          {MODEL_OPTIONS.map((model) => (
+            <option key={model.value} value={model.value}>
+              {model.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div>
-        <label>
+        <label htmlFor="words-input" className="block text-sm font-medium mb-1">
           Number of Words:
-          <input
-            type="number"
-            value={numWords}
-            onChange={(e) => setNumWords(Number(e.target.value))}
-            placeholder="Enter number of words"
-            className="w-full p-2 border rounded-sm"
-            min={10}
-          />
         </label>
+        <input
+          id="words-input"
+          type="number"
+          value={numWords}
+          onChange={(e) => setNumWords(Number(e.target.value))}
+          placeholder="Enter number of words"
+          className="w-full p-2 border border-gray-300 rounded-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          min={VALIDATION.MIN_WORDS}
+          max={VALIDATION.MAX_WORDS}
+          aria-describedby="words-help"
+        />
+        <p id="words-help" className="text-gray-500 text-sm mt-1">
+          Between {VALIDATION.MIN_WORDS} and {VALIDATION.MAX_WORDS} words
+        </p>
       </div>
 
       <button
         type="submit"
         disabled={isPending || !!urlError}
-        className={`p-2 ${
-          isPending || !!urlError ? "bg-gray-400" : "bg-blue-500"
-        } text-white rounded-sm`}
+        className={`p-2 rounded-sm font-medium transition-colors ${
+          isPending || !!urlError 
+            ? "bg-gray-400 cursor-not-allowed" 
+            : "bg-blue-500 hover:bg-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+        } text-white`}
+        aria-describedby={isPending ? "loading-status" : undefined}
       >
         {isPending ? "Summarizing..." : "Scrape and Summarize"}
       </button>
+      {isPending && (
+        <span id="loading-status" className="sr-only">
+          Processing your request, please wait
+        </span>
+      )}
     </form>
   );
 }

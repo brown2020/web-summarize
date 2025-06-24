@@ -19,33 +19,35 @@ const xai = createOpenAI({
 });
 
 async function getModel(modelName: string) {
-  switch (modelName) {
-    case "gpt-4o":
-      console.log("using gpt-4o");
-      return openai("gpt-4o");
+  try {
+    switch (modelName) {
+      case "gpt-4o":
+        return openai("gpt-4o");
 
-    case "gemini-1.5-pro":
-      console.log("using gemini-1.5-pro");
-      return google("models/gemini-1.5-pro-latest");
+      case "gemini-1.5-pro":
+        return google("models/gemini-1.5-pro-latest");
 
-    case "claude-3-5-sonnet":
-      console.log("using claude-3-5-sonnet");
-      return anthropic("claude-3-5-sonnet-20241022");
+      case "claude-3-5-sonnet":
+        return anthropic("claude-3-5-sonnet-20241022");
 
-    case "mistral-large":
-      console.log("using mistral-large");
-      return mistral("mistral-large-latest");
+      case "mistral-large":
+        return mistral("mistral-large-latest");
 
-    case "llama-v3p1-405b":
-      console.log("using llama-v3p1-405b");
-      return fireworks("accounts/fireworks/models/llama-v3p1-405b-instruct");
+      case "llama-v3p1-405b":
+        return fireworks("accounts/fireworks/models/llama-v3p1-405b-instruct");
 
-    case "xai-grok":
-      console.log("using xai-grok");
-      return xai("grok-beta");
+      case "xai-grok":
+        return xai("grok-beta");
 
-    default:
-      throw new Error(`Unsupported model name: ${modelName}`);
+      default:
+        throw new Error(`Unsupported model name: ${modelName}`);
+    }
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to get model: ${error.message}`);
+    } else {
+      throw new Error(`Failed to get model: Unknown error`);
+    }
   }
 }
 
@@ -54,26 +56,34 @@ async function generateResponse(
   userPrompt: string,
   modelName: string
 ) {
-  const model = await getModel(modelName);
+  try {
+    const model = await getModel(modelName);
 
-  const messages: CoreMessage[] = [
-    {
-      role: "system",
-      content: systemPrompt,
-    },
-    {
-      role: "user",
-      content: userPrompt,
-    },
-  ];
+    const messages: CoreMessage[] = [
+      {
+        role: "system",
+        content: systemPrompt,
+      },
+      {
+        role: "user",
+        content: userPrompt,
+      },
+    ];
 
-  const result = streamText({
-    model,
-    messages,
-  });
+    const result = streamText({
+      model,
+      messages,
+    });
 
-  const stream = createStreamableValue(result.textStream);
-  return stream.value;
+    const stream = createStreamableValue(result.textStream);
+    return stream.value;
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to generate response: ${error.message}`);
+    } else {
+      throw new Error(`Failed to generate response: Unknown error`);
+    }
+  }
 }
 
 export async function generateSummary(
@@ -82,9 +92,17 @@ export async function generateSummary(
   modelName: string,
   numWords: number
 ) {
-  const systemPrompt = `You are a helpful summarization and translation assistant. Your job is to generate a summary of the provided document in the provided language. The summary should be concise, informative, and ${numWords} words or less. Present the summary without introduction and without saying that it is a summary.`;
-  const userPrompt = `Provided document:\n${document}\n\nProvided language:\n${language}`;
-  return generateResponse(systemPrompt, userPrompt, modelName);
+  try {
+    const systemPrompt = `You are a helpful summarization and translation assistant. Your job is to generate a summary of the provided document in the provided language. The summary should be concise, informative, and ${numWords} words or less. Present the summary without introduction and without saying that it is a summary.`;
+    const userPrompt = `Provided document:\n${document}\n\nProvided language:\n${language}`;
+    return generateResponse(systemPrompt, userPrompt, modelName);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to generate summary: ${error.message}`);
+    } else {
+      throw new Error(`Failed to generate summary: Unknown error`);
+    }
+  }
 }
 
 export async function generateAnswer(
@@ -92,8 +110,16 @@ export async function generateAnswer(
   question: string,
   modelName: string
 ) {
-  const systemPrompt =
-    "You are a helpful question and answer assistant. Your job is to generate an answer to the provided question based on the provided document. Without any introduction, provide an answer that is concise, informative, and 100 words or less.";
-  const userPrompt = `Provided document:\n${document}\n\nProvided question:\n${question}`;
-  return generateResponse(systemPrompt, userPrompt, modelName);
+  try {
+    const systemPrompt =
+      "You are a helpful question and answer assistant. Your job is to generate an answer to the provided question based on the provided document. Without any introduction, provide an answer that is concise, informative, and 100 words or less.";
+    const userPrompt = `Provided document:\n${document}\n\nProvided question:\n${question}`;
+    return generateResponse(systemPrompt, userPrompt, modelName);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to generate answer: ${error.message}`);
+    } else {
+      throw new Error(`Failed to generate answer: Unknown error`);
+    }
+  }
 }
