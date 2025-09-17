@@ -1,7 +1,7 @@
 "use server";
 
-import { createStreamableValue } from "ai/rsc";
-import { CoreMessage, streamText } from "ai";
+import { createStreamableValue } from "@ai-sdk/rsc";
+import { ModelMessage, streamText } from "ai";
 import { createOpenAI, openai } from "@ai-sdk/openai";
 import { google } from "@ai-sdk/google";
 import { mistral } from "@ai-sdk/mistral";
@@ -21,8 +21,8 @@ const xai = createOpenAI({
 async function getModel(modelName: string) {
   try {
     switch (modelName) {
-      case "gpt-4o":
-        return openai("gpt-4o");
+      case "gpt-4.1":
+        return openai("gpt-4.1");
 
       case "gemini-1.5-pro":
         return google("models/gemini-1.5-pro-latest");
@@ -59,7 +59,7 @@ async function generateResponse(
   try {
     const model = await getModel(modelName);
 
-    const messages: CoreMessage[] = [
+    const messages: ModelMessage[] = [
       {
         role: "system",
         content: systemPrompt,

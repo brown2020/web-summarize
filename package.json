@@ -9,11 +9,12 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^1.0.2",
-    "@ai-sdk/google": "^1.0.4",
-    "@ai-sdk/mistral": "^1.0.3",
-    "@ai-sdk/openai": "^1.0.5",
-    "ai": "^4.0.6",
+    "@ai-sdk/anthropic": "^2.0.17",
+    "@ai-sdk/google": "^2.0.14",
+    "@ai-sdk/mistral": "^2.0.14",
+    "@ai-sdk/openai": "^2.0.30",
+    "@ai-sdk/rsc": "^1.0.44",
+    "ai": "^5.0.44",
     "axios": "^1.7.7",
     "cheerio": "^1.0.0",
     "next": "^15.0.2",
