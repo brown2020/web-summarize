@@ -1,40 +1,41 @@
-import { Language } from "@/types/summarizer";
 import { LANGUAGES, MODEL_OPTIONS } from "@/constants/summarizer";
 import { VALIDATION } from "@/constants/app";
 import { validateAndNormalizeUrl } from "@/utils/url-validation";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useSummarizerStore } from "@/store/summarizerStore";
+import { Language } from "@/types/summarizer";
 
 type SummarizerFormProps = {
-  url: string;
-  setUrl: (url: string) => void;
-  language: Language;
-  setLanguage: (language: Language) => void;
-  modelName: string;
-  setModelName: (modelName: string) => void;
-  numWords: number;
-  setNumWords: (numWords: number) => void;
-  isPending: boolean;
   onSubmit: (e: React.FormEvent) => Promise<void>;
 };
 
-export function SummarizerForm({
-  url,
-  setUrl,
-  language,
-  setLanguage,
-  modelName,
-  setModelName,
-  numWords,
-  setNumWords,
-  isPending,
-  onSubmit,
-}: SummarizerFormProps) {
+export function SummarizerForm({ onSubmit }: SummarizerFormProps) {
+  const {
+    url,
+    setUrl,
+    language,
+    setLanguage,
+    modelName,
+    setModelName,
+    numWords,
+    setNumWords,
+    isPending,
+  } = useSummarizerStore();
+
   const [urlError, setUrlError] = useState<string>("");
 
   const validateUrl = (value: string) => {
-    setUrl(value); // Always set the raw value as user types
-    
-    // Only validate for error display, don't normalize during typing
+    setUrl(value);
     const validation = validateAndNormalizeUrl(value);
     if (validation.isValid) {
       setUrlError("");
@@ -46,7 +47,6 @@ export function SummarizerForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Final validation before submission
     const validation = validateAndNormalizeUrl(url);
     if (!validation.isValid) {
       setUrlError(validation.error || "Invalid URL");
@@ -61,103 +61,88 @@ export function SummarizerForm({
   };
 
   return (
-    <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-      <div>
-        <label htmlFor="url-input" className="block text-sm font-medium mb-1">
-          Webpage URL:
-        </label>
-        <input
+    <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
+      <div className="space-y-2">
+        <Label htmlFor="url-input">Webpage URL</Label>
+        <Input
           id="url-input"
-          type="url"
+          type="text"
           value={url}
           onChange={(e) => validateUrl(e.target.value)}
-          placeholder="Enter a webpage URL (e.g., https://example.com)"
-          className={`w-full p-2 border rounded-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-            urlError ? "border-red-500" : "border-gray-300"
-          }`}
-          aria-describedby={urlError ? "url-error" : undefined}
+          placeholder="Enter a webpage URL (e.g., ignite.me or https://example.com)"
+          className={urlError ? "border-red-500" : ""}
           aria-invalid={!!urlError}
+          aria-describedby={urlError ? "url-error" : undefined}
         />
         {urlError && (
-          <p id="url-error" className="text-red-500 text-sm mt-1" role="alert">
+          <p id="url-error" className="text-sm text-red-500" role="alert">
             {urlError}
           </p>
         )}
       </div>
 
-      <div>
-        <label htmlFor="language-select" className="block text-sm font-medium mb-1">
-          Select Language:
-        </label>
-        <select
-          id="language-select"
-          value={language}
-          onChange={(e) => setLanguage(e.target.value as Language)}
-          className="w-full p-2 border border-gray-300 rounded-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        >
-          {LANGUAGES.map((lang) => (
-            <option key={lang} value={lang}>
-              {lang.charAt(0).toUpperCase() + lang.slice(1)}
-            </option>
-          ))}
-        </select>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-2">
+          <Label htmlFor="language-select">Select Language</Label>
+          <Select
+            value={language}
+            onValueChange={(value) => setLanguage(value as Language)}
+          >
+            <SelectTrigger id="language-select">
+              <SelectValue placeholder="Select Language" />
+            </SelectTrigger>
+            <SelectContent>
+              {LANGUAGES.map((lang) => (
+                <SelectItem key={lang} value={lang}>
+                  {lang.charAt(0).toUpperCase() + lang.slice(1)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="model-select">Select Model</Label>
+          <Select value={modelName} onValueChange={setModelName}>
+            <SelectTrigger id="model-select">
+              <SelectValue placeholder="Select Model" />
+            </SelectTrigger>
+            <SelectContent>
+              {MODEL_OPTIONS.map((model) => (
+                <SelectItem key={model.value} value={model.value}>
+                  {model.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
-      <div>
-        <label htmlFor="model-select" className="block text-sm font-medium mb-1">
-          Select Model:
-        </label>
-        <select
-          id="model-select"
-          value={modelName}
-          onChange={(e) => setModelName(e.target.value)}
-          className="w-full p-2 border border-gray-300 rounded-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        >
-          {MODEL_OPTIONS.map((model) => (
-            <option key={model.value} value={model.value}>
-              {model.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div>
-        <label htmlFor="words-input" className="block text-sm font-medium mb-1">
-          Number of Words:
-        </label>
-        <input
+      <div className="space-y-2">
+        <Label htmlFor="words-input">Number of Words</Label>
+        <Input
           id="words-input"
           type="number"
           value={numWords}
           onChange={(e) => setNumWords(Number(e.target.value))}
           placeholder="Enter number of words"
-          className="w-full p-2 border border-gray-300 rounded-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           min={VALIDATION.MIN_WORDS}
           max={VALIDATION.MAX_WORDS}
           aria-describedby="words-help"
         />
-        <p id="words-help" className="text-gray-500 text-sm mt-1">
+        <p id="words-help" className="text-xs text-muted-foreground">
           Between {VALIDATION.MIN_WORDS} and {VALIDATION.MAX_WORDS} words
         </p>
       </div>
 
-      <button
+      <Button
         type="submit"
         disabled={isPending || !!urlError}
-        className={`p-2 rounded-sm font-medium transition-colors ${
-          isPending || !!urlError 
-            ? "bg-gray-400 cursor-not-allowed" 
-            : "bg-blue-500 hover:bg-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-        } text-white`}
-        aria-describedby={isPending ? "loading-status" : undefined}
+        className="w-full"
+        size="lg"
       >
         {isPending ? "Summarizing..." : "Scrape and Summarize"}
-      </button>
-      {isPending && (
-        <span id="loading-status" className="sr-only">
-          Processing your request, please wait
-        </span>
-      )}
+      </Button>
     </form>
   );
 }

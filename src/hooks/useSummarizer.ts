@@ -1,108 +1,84 @@
-import { useState } from "react";
-import axios from "axios";
-import { load } from "cheerio";
+import { useSummarizerStore } from "@/store/summarizerStore";
 import { generateSummary } from "@/actions/generateActions";
 import { readStreamableValue } from "@ai-sdk/rsc";
 import { toast } from "react-hot-toast";
-import { Language } from "@/types/summarizer";
-import { PROGRESS_STEPS, VALIDATION } from "@/constants/app";
-
-interface SummarizerError {
-  message: string;
-  type: "network" | "content" | "ai" | "validation" | "unknown";
-}
+import axios from "axios";
+import { PROGRESS_STEPS } from "@/constants/app";
 
 export function useSummarizer() {
-  const [url, setUrl] = useState("");
-  const [language, setLanguage] = useState<Language>("english");
-  const [modelName, setModelName] = useState<string>("gpt-4.1");
-  const [numWords, setNumWords] = useState<number>(VALIDATION.DEFAULT_WORDS);
-  const [summary, setSummary] = useState("");
-  const [isPending, setIsPending] = useState(false);
-  const [progress, setProgress] = useState<number>(PROGRESS_STEPS.INITIAL);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    url,
+    language,
+    modelName,
+    numWords,
+    setSummary,
+    setIsPending,
+    setProgress,
+    setError,
+  } = useSummarizerStore();
 
-  const handleError = (
-    error: unknown,
-    fallbackMessage: string
-  ): SummarizerError => {
+  const handleError = (error: unknown, fallbackMessage: string) => {
     if (axios.isAxiosError(error)) {
-      if (error.response) {
-        return {
-          message:
-            error.response.data?.error ||
-            `Server error: ${error.response.status}`,
-          type: "network",
-        };
-      }
-      return {
-        message: "Network error. Please check your connection and try again.",
-        type: "network",
-      };
+      return (
+        error.response?.data?.error ||
+        "Network error. Please check your connection."
+      );
     }
-
-    if (error instanceof Error) {
-      return {
-        message: error.message,
-        type: "unknown",
-      };
-    }
-
-    return {
-      message: fallbackMessage,
-      type: "unknown",
-    };
+    return error instanceof Error ? error.message : fallbackMessage;
   };
 
-  const fetchWebpageContent = async (url: string): Promise<string> => {
+  const handleScrapeAndSummarize = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsPending(true);
+    setSummary("");
     setProgress(PROGRESS_STEPS.INITIAL);
+    setError(null);
 
     try {
+      if (!url.trim()) throw new Error("URL is required");
+
+      // 1. Fetch Content via Proxy
+      // We use a proxy to avoid CORS issues when fetching external HTML
       const response = await axios.get(
         `/api/proxy?url=${encodeURIComponent(url)}`
       );
+      const html = response.data;
       setProgress(PROGRESS_STEPS.URL_FETCHED);
-      return response.data;
-    } catch (error) {
-      const handledError = handleError(error, "Failed to fetch webpage");
-      throw new Error(handledError.message);
-    }
-  };
 
-  const extractTextContent = (html: string): string => {
-    const $ = load(html);
-    const text = $("body").text().replace(/\s+/g, " ").trim();
+      // 2. Extract Text
+      // Simple client-side extraction. For production, consider moving this to the server/proxy
+      // to ensure consistent parsing and reduce client bundle size (cheerio is heavy).
+      // For this refactor, we'll stick to a lightweight DOM parser approach or assume the proxy returns text.
+      // If the proxy returns raw HTML:
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, "text/html");
+      
+      // Remove scripts, styles, and other non-content elements
+      const scripts = doc.querySelectorAll('script, style, noscript, iframe, svg');
+      scripts.forEach(script => script.remove());
+      
+      const text = doc.body.innerText.replace(/\s+/g, " ").trim();
 
-    if (!text || text.trim().length === 0) {
-      throw new Error(
-        "No content found on the webpage. Please try a different URL."
-      );
-    }
+      if (!text || text.length < 50) {
+        throw new Error("Content too short or could not be extracted.");
+      }
+      setProgress(PROGRESS_STEPS.CONTENT_EXTRACTED);
 
-    setProgress(PROGRESS_STEPS.CONTENT_EXTRACTED);
-    return text;
-  };
-
-  const generateAISummary = async (
-    text: string,
-    language: Language,
-    modelName: string,
-    numWords: number
-  ): Promise<void> => {
-    setProgress(PROGRESS_STEPS.AI_PROCESSING);
-
-    try {
+      // 3. Generate Summary via Server Action
+      setProgress(PROGRESS_STEPS.AI_PROCESSING);
       const result = await generateSummary(text, language, modelName, numWords);
-      let accumulatedContent = "";
 
+      let accumulatedContent = "";
       for await (const content of readStreamableValue(result)) {
         if (content) {
           accumulatedContent = content.trim();
           setSummary(accumulatedContent);
 
-          // More accurate progress calculation based on content length
+          // Estimate progress based on expected length
+          // heuristic: 5 chars per word
+          const expectedChars = numWords * 5;
           const progressIncrement = Math.min(
-            (accumulatedContent.length / (numWords * 5)) * 30, // Estimate 5 chars per word
+            (accumulatedContent.length / expectedChars) * 30,
             30
           );
           setProgress(PROGRESS_STEPS.AI_PROCESSING + progressIncrement);
@@ -111,42 +87,10 @@ export function useSummarizer() {
 
       setProgress(PROGRESS_STEPS.COMPLETE);
       toast.success("Summary generated successfully");
-    } catch (error) {
-      const handledError = handleError(error, "Failed to generate summary");
-      throw new Error(handledError.message);
-    }
-  };
-
-  const handleScrapeAndSummarize = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    // Reset state
-    setIsPending(true);
-    setSummary("");
-    setProgress(PROGRESS_STEPS.INITIAL);
-    setError(null);
-
-    try {
-      // Validate inputs
-      if (!url.trim()) {
-        throw new Error("URL is required");
-      }
-
-      if (numWords < VALIDATION.MIN_WORDS || numWords > VALIDATION.MAX_WORDS) {
-        throw new Error(
-          `Number of words must be between ${VALIDATION.MIN_WORDS} and ${VALIDATION.MAX_WORDS}`
-        );
-      }
-
-      // Fetch and process webpage
-      const html = await fetchWebpageContent(url);
-      const text = extractTextContent(html);
-
-      // Generate AI summary
-      await generateAISummary(text, language, modelName, numWords);
     } catch (err) {
-      const handledError = handleError(err, "An unexpected error occurred");
-      setError(handledError.message);
+      const message = handleError(err, "Failed to generate summary");
+      setError(message);
+      toast.error(message);
       setProgress(PROGRESS_STEPS.INITIAL);
     } finally {
       setIsPending(false);
@@ -154,18 +98,6 @@ export function useSummarizer() {
   };
 
   return {
-    url,
-    setUrl,
-    language,
-    setLanguage,
-    modelName,
-    setModelName,
-    numWords,
-    setNumWords,
-    summary,
-    isPending,
-    progress,
-    error,
     handleScrapeAndSummarize,
   };
 }

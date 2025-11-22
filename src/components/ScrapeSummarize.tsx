@@ -1,58 +1,74 @@
 "use client";
 
-import { useSummarizer } from "@/hooks/useSummarizer";
-import ProgressBar from "./ProgressBar";
-import Markdown from "react-markdown";
+import { useSummarizerStore } from "@/store/summarizerStore";
 import { SummarizerForm } from "./SummarizerForm";
 import { Toaster } from "react-hot-toast";
+import Markdown from "react-markdown";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { useSummarizer } from "@/hooks/useSummarizer";
 
 export default function ScrapeSummarize() {
   const {
-    url,
-    setUrl,
-    language,
-    setLanguage,
-    modelName,
-    setModelName,
-    numWords,
-    setNumWords,
     summary,
     isPending,
     progress,
     error,
-    handleScrapeAndSummarize,
-  } = useSummarizer();
+  } = useSummarizerStore();
+
+  const { handleScrapeAndSummarize } = useSummarizer();
 
   return (
-    <div className="p-4 max-w-3xl mx-auto">
+    <div className="container max-w-4xl mx-auto py-10 px-4 space-y-8">
       <Toaster position="top-center" />
-      <h1 className="text-2xl font-bold mb-4">Scrape and Summarize Webpage</h1>
+      
+      <div className="text-center space-y-2">
+        <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl">
+          Web Summarizer
+        </h1>
+        <p className="text-muted-foreground">
+          Enter a URL to generate a concise AI summary using advanced LLMs.
+        </p>
+      </div>
 
-      <SummarizerForm
-        url={url}
-        setUrl={setUrl}
-        language={language}
-        setLanguage={setLanguage}
-        modelName={modelName}
-        setModelName={setModelName}
-        numWords={numWords}
-        setNumWords={setNumWords}
-        isPending={isPending}
-        onSubmit={handleScrapeAndSummarize}
-      />
+      <Card>
+        <CardHeader>
+          <CardTitle>Configuration</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <SummarizerForm onSubmit={handleScrapeAndSummarize} />
+        </CardContent>
+      </Card>
 
-      {isPending && <ProgressBar progress={progress} />}
+      {isPending && (
+        <Card className="border-none shadow-none bg-transparent">
+          <CardContent className="pt-6 space-y-2">
+            <div className="flex justify-between text-sm text-muted-foreground">
+              <span>Processing...</span>
+              <span>{Math.round(progress)}%</span>
+            </div>
+            <Progress value={progress} className="w-full" />
+          </CardContent>
+        </Card>
+      )}
 
       {error && !isPending && (
-        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-700">
-          <p>{error}</p>
-        </div>
+        <Card className="border-destructive/50 bg-destructive/10">
+          <CardContent className="pt-6 text-destructive">
+            {error}
+          </CardContent>
+        </Card>
       )}
 
       {summary && (
-        <div className="mt-4 p-5 bg-gray-100 rounded-md">
-          <Markdown>{summary}</Markdown>
-        </div>
+        <Card className="bg-muted/50">
+          <CardHeader>
+            <CardTitle>Summary</CardTitle>
+          </CardHeader>
+          <CardContent className="prose dark:prose-invert max-w-none">
+            <Markdown>{summary}</Markdown>
+          </CardContent>
+        </Card>
       )}
     </div>
   );
