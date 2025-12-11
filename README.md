@@ -1,191 +1,286 @@
-# Scrape and Summarize Webpage
+# Web Summarize
 
-A Next.js 14 application that scrapes a webpage, processes the content, and generates a concise summary using AI. This project utilizes server actions, streaming responses, and dynamic state management to provide real-time content summarization. The app showcases how to effectively use the Vercel AI SDK to build an AI-powered summarization tool with a seamless user experience.
+[![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-19-blue?logo=react)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript)](https://www.typescriptlang.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-38B2AC?logo=tailwind-css)](https://tailwindcss.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## Table of Contents
+A modern AI-powered web page summarizer built with Next.js 16, React 19, and the Vercel AI SDK. Enter any URL and get a concise summary in your preferred language using state-of-the-art LLMs from OpenAI, Anthropic, Google, Mistral, and more.
 
-- [Features](#features)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Folder Structure](#folder-structure)
-- [Components](#components)
-- [API Routes](#api-routes)
-- [Technologies Used](#technologies-used)
-- [Using Vercel AI SDK](#using-vercel-ai-sdk)
-- [Streaming Technique](#streaming-technique)
-- [Contributing](#contributing)
-- [Contact](#contact)
-- [License](#license)
+![Web Summarize Demo](https://via.placeholder.com/800x400?text=Web+Summarize+Demo)
 
-## Features
+## ✨ Features
 
-- **Scrape Webpages:** Enter a URL to fetch and scrape content from the specified webpage.
-- **AI-Powered Summarization:** Leverage AI models to generate a summary in the desired language.
-- **Real-Time Streaming:** Display the summary in real-time as it's being generated.
-- **Progress Feedback:** Visual progress bar indicating the status of scraping and summarization.
-- **Multiple Languages Supported:** Choose from a variety of languages for summarization.
-- **Dynamic State Management:** Real-time updates using React state management.
+- **🌐 Universal Web Scraping** — Fetch and extract content from any publicly accessible webpage
+- **🤖 Multi-Model Support** — Choose from 6 AI providers: OpenAI GPT-4o, Claude 3.5 Sonnet, Gemini 1.5 Pro, Mistral Large, Llama 3.1 405B, and xAI Grok
+- **🌍 10 Languages** — Generate summaries in English, French, Spanish, German, Italian, Portuguese, Chinese, Russian, Hindi, or Japanese
+- **⚡ Real-Time Streaming** — Watch summaries generate token-by-token with live progress updates
+- **📱 Responsive Design** — Beautiful UI built with Tailwind CSS v4 and Radix UI primitives
+- **🔒 Server-Side Processing** — Secure API key handling with Next.js Server Actions
+- **📝 Markdown Output** — Rich formatting with headers, bullet points, and emphasis
 
-## Installation
+## 🚀 Quick Start
 
-1. **Clone the Repository:**
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) 18.17 or later
+- [npm](https://www.npmjs.com/), [yarn](https://yarnpkg.com/), or [pnpm](https://pnpm.io/)
+- At least one AI provider API key (see [Environment Variables](#environment-variables))
+
+### Installation
+
+1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/brown2020/scrape-and-summarize.git
-   cd scrape-and-summarize
+   git clone https://github.com/brown2020/web-summarize.git
+   cd web-summarize
    ```
 
-2. **Install Dependencies:**
-
-   Make sure you have [Node.js](https://nodejs.org/) installed, then run:
+2. **Install dependencies**
 
    ```bash
    npm install
    ```
 
-3. **Set Up Environment Variables:**
+3. **Configure environment variables**
 
-   Create a `.env` file in the root directory and add the following environment variables:
+   Create a `.env.local` file in the root directory:
 
    ```bash
-   OPENAI_API_KEY=your_openai_api_key
-   ANTHROPIC_API_KEY=your_anthropic_api_key
-   GOOGLE_GENERATIVE_AI_API_KEY=your_google_generative_ai_api_key
-   MISTRAL_API_KEY=your_mistral_api_key
-   FIREWORKS_API_KEY=your_fireworks_api_key
+   # Required: At least one AI provider
+   OPENAI_API_KEY=sk-...
+
+   # Optional: Additional AI providers
+   ANTHROPIC_API_KEY=sk-ant-...
+   GOOGLE_GENERATIVE_AI_API_KEY=...
+   MISTRAL_API_KEY=...
+   FIREWORKS_API_KEY=...
+   XAI_API_KEY=...
    ```
 
-   _(Replace the placeholders with your actual API keys for the respective AI services.)_
-
-4. **Run the Development Server:**
+4. **Start the development server**
 
    ```bash
    npm run dev
    ```
 
-   The app will be running at [http://localhost:3000](http://localhost:3000).
+5. **Open [http://localhost:3000](http://localhost:3000)** in your browser
 
-## Usage
+## 📖 Usage
 
-1. **Enter a Webpage URL:** Type or paste the URL of the webpage you want to scrape.
-2. **Select Language and Model:** Choose a language and AI model for the summarization.
-3. **Specify the Number of Words:** Input the desired word count for the summary.
-4. **Generate Summary:** Click the "Scrape and Summarize" button. The summary will be displayed in real-time as it's being generated.
-5. **View Results:** The results are shown in a clean and formatted way using Markdown.
+1. **Enter a URL** — Paste any webpage URL (protocol is auto-added if missing)
+2. **Select Language** — Choose your preferred output language
+3. **Choose AI Model** — Pick from available LLM providers
+4. **Set Word Count** — Specify summary length (50-1000 words)
+5. **Generate** — Click "Scrape and Summarize" and watch the magic happen!
 
-## Folder Structure
+## 🏗️ Project Structure
 
 ```
-scrape-and-summarize/
-├── app/
-│   ├── api/
-│   │   └── proxy/
-│   │       └── route.ts          # API route to handle proxy requests
-│   └── page.tsx                  # Main application page
-├── components/
-│   ├── ScrapeSummarize.tsx       # Main React component for scraping and summarizing
-│   └── ProgressBar.tsx           # Component for displaying progress during scraping and summarizing
-├── lib/
-│   └── generateActions.ts        # Server actions for generating summaries
-├── public/                       # Public assets
-├── styles/                       # Global and component-specific styles
-├── .env                          # Environment variables
-├── .gitignore                    # Files and directories to ignore in Git
-├── README.md                     # Project documentation
-└── package.json                  # Project dependencies and scripts
+web-summarize/
+├── src/
+│   ├── app/
+│   │   ├── api/
+│   │   │   └── proxy/
+│   │   │       └── route.ts       # Proxy API for fetching & extracting webpage content
+│   │   ├── globals.css            # Tailwind CSS v4 theme configuration
+│   │   ├── layout.tsx             # Root layout with metadata
+│   │   └── page.tsx               # Home page entry point
+│   ├── actions/
+│   │   └── generateActions.ts     # Server Actions for AI streaming
+│   ├── components/
+│   │   ├── ui/                    # Reusable UI components (Radix-based)
+│   │   │   ├── button.tsx
+│   │   │   ├── card.tsx
+│   │   │   ├── input.tsx
+│   │   │   ├── label.tsx
+│   │   │   ├── progress.tsx
+│   │   │   └── select.tsx
+│   │   ├── ScrapeSummarize.tsx    # Main summarizer container
+│   │   └── SummarizerForm.tsx     # Form with URL input and options
+│   ├── constants/
+│   │   ├── app.ts                 # App-wide constants (timeouts, validation)
+│   │   └── summarizer.ts          # Model options and language list
+│   ├── hooks/
+│   │   └── useSummarizer.ts       # Core summarization logic hook
+│   ├── lib/
+│   │   └── utils.ts               # Utility functions (cn, capitalize)
+│   ├── store/
+│   │   └── summarizerStore.ts     # Zustand global state management
+│   ├── types/
+│   │   └── summarizer.ts          # TypeScript types and Zod schemas
+│   └── utils/
+│       └── url-validation.ts      # URL validation and normalization
+├── .env.local                     # Environment variables (not committed)
+├── next.config.mjs                # Next.js configuration
+├── package.json                   # Dependencies and scripts
+├── postcss.config.mjs             # PostCSS configuration
+├── tailwind.config.ts             # Tailwind CSS configuration
+└── tsconfig.json                  # TypeScript configuration
 ```
 
-## Components
+## 🔧 Environment Variables
 
-### `ScrapeSummarize.tsx`
+| Variable                       | Required | Description                             |
+| ------------------------------ | -------- | --------------------------------------- |
+| `OPENAI_API_KEY`               | Yes\*    | OpenAI API key for GPT-4o               |
+| `ANTHROPIC_API_KEY`            | No       | Anthropic API key for Claude 3.5 Sonnet |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | No       | Google AI API key for Gemini 1.5 Pro    |
+| `MISTRAL_API_KEY`              | No       | Mistral API key for Mistral Large       |
+| `FIREWORKS_API_KEY`            | No       | Fireworks AI API key for Llama 3.1 405B |
+| `XAI_API_KEY`                  | No       | xAI API key for Grok                    |
 
-- Main component that handles:
-  - User input for the webpage URL.
-  - Language and model selection.
-  - Number of words for the summary.
-  - Fetching, scraping, and summarizing the webpage content.
-  - Displaying the real-time summary using a streaming response.
+\*At least one AI provider API key is required. OpenAI is the default fallback.
 
-### `ProgressBar.tsx`
+## 🛠️ Tech Stack
 
-- A reusable component that visually represents the progress of scraping and summarization processes.
-- Dynamically adjusts its width based on the progress value provided.
+### Core Framework
 
-## API Routes
+| Package                                       | Version | Purpose                                                    |
+| --------------------------------------------- | ------- | ---------------------------------------------------------- |
+| [Next.js](https://nextjs.org/)                | 16.x    | React framework with App Router, Server Actions, Turbopack |
+| [React](https://react.dev/)                   | 19.x    | UI library with latest features                            |
+| [TypeScript](https://www.typescriptlang.org/) | 5.x     | Type safety and developer experience                       |
 
-### `app/api/proxy/route.ts`
+### AI & LLM Integration
 
-- **GET** `/api/proxy?url={URL}`
-- Acts as a proxy to fetch content from external URLs to avoid CORS issues.
-- Returns the raw HTML of the requested webpage.
+| Package                                                                                 | Version | Purpose                           |
+| --------------------------------------------------------------------------------------- | ------- | --------------------------------- |
+| [ai](https://sdk.vercel.ai/)                                                            | 5.x     | Vercel AI SDK core for streaming  |
+| [@ai-sdk/openai](https://sdk.vercel.ai/providers/ai-sdk-providers/openai)               | 2.x     | OpenAI GPT models                 |
+| [@ai-sdk/anthropic](https://sdk.vercel.ai/providers/ai-sdk-providers/anthropic)         | 2.x     | Anthropic Claude models           |
+| [@ai-sdk/google](https://sdk.vercel.ai/providers/ai-sdk-providers/google-generative-ai) | 2.x     | Google Gemini models              |
+| [@ai-sdk/mistral](https://sdk.vercel.ai/providers/ai-sdk-providers/mistral)             | 2.x     | Mistral AI models                 |
+| [@ai-sdk/rsc](https://sdk.vercel.ai/docs/ai-sdk-rsc)                                    | 1.x     | React Server Components streaming |
 
-## Technologies Used
+### UI & Styling
 
-- **Next.js 14**: React framework for server-side rendering and static site generation.
-- **TypeScript**: For type safety and code clarity.
-- **Cheerio**: For scraping webpage content.
-- **Axios**: For making HTTP requests.
-- **React Hot Toast**: For user notifications.
-- **Markdown Renderer**: For displaying the summarized content.
-- **OpenAI API**: For generating summaries with AI models.
+| Package                                                      | Version | Purpose                      |
+| ------------------------------------------------------------ | ------- | ---------------------------- |
+| [Tailwind CSS](https://tailwindcss.com/)                     | 4.x     | Utility-first CSS framework  |
+| [@radix-ui/react-\*](https://www.radix-ui.com/)              | 2.x     | Accessible UI primitives     |
+| [class-variance-authority](https://cva.style/)               | 0.7.x   | Component variant management |
+| [lucide-react](https://lucide.dev/)                          | 0.5x    | Icon library                 |
+| [react-markdown](https://github.com/remarkjs/react-markdown) | 10.x    | Markdown rendering           |
 
-## Using Vercel AI SDK
+### State & Data
 
-This project demonstrates how to use the **Vercel AI SDK** in a Next.js 14 application with server actions and streaming:
+| Package                                  | Version | Purpose                      |
+| ---------------------------------------- | ------- | ---------------------------- |
+| [Zustand](https://zustand-demo.pmnd.rs/) | 5.x     | Lightweight state management |
+| [Zod](https://zod.dev/)                  | 4.x     | Schema validation            |
+| [Axios](https://axios-http.com/)         | 1.x     | HTTP client                  |
+| [Cheerio](https://cheerio.js.org/)       | 1.x     | Server-side HTML parsing     |
 
-- **Server Actions:** The `generateSummary` function in `lib/generateActions.ts` utilizes server actions to perform asynchronous AI model calls using various SDKs provided by Vercel AI, such as OpenAI, Anthropic, Mistral, and Google's Generative AI.
-- **Streaming Responses:** By using the `readStreamableValue` method from the SDK, the application streams the AI-generated summary in real-time. This allows for a responsive user experience where content is displayed progressively rather than waiting for the entire operation to complete.
-- **Dynamic Model Selection:** The app allows users to select different AI models (e.g., OpenAI's GPT, Google's Gemini, Anthropic's Claude) to generate summaries, showcasing the versatility of the Vercel AI SDK to interact with multiple AI providers through a unified interface.
+### Utilities
 
-## Streaming Technique
+| Package                                                     | Version | Purpose                |
+| ----------------------------------------------------------- | ------- | ---------------------- |
+| [react-hot-toast](https://react-hot-toast.com/)             | 2.x     | Toast notifications    |
+| [clsx](https://github.com/lukeed/clsx)                      | 2.x     | Conditional classNames |
+| [tailwind-merge](https://github.com/dcastil/tailwind-merge) | 3.x     | Merge Tailwind classes |
 
-To implement real-time streaming in the application, the following technique is used:
+## 🔄 How It Works
 
-### Streaming Code Snippet
+### Architecture Flow
 
-```jsx
-// Stream the response to handle progressive updates
-let chunkCount = 0; // Initialize chunk counter
+```
+┌─────────────┐     ┌──────────────┐     ┌─────────────────┐
+│   Browser   │────▶│  /api/proxy  │────▶│  Target Website │
+│  (Client)   │◀────│   (Server)   │◀────│                 │
+└─────────────┘     └──────────────┘     └─────────────────┘
+       │                                          │
+       │            ┌──────────────┐              │
+       │            │   Cheerio    │◀─────────────┘
+       │            │  (Extract)   │   Raw HTML
+       │            └──────────────┘
+       │                   │
+       │              Plain Text
+       │                   ▼
+       │            ┌──────────────┐     ┌─────────────────┐
+       │            │   Server     │────▶│   AI Provider   │
+       └───────────▶│   Action     │◀────│  (OpenAI, etc.) │
+         Stream     └──────────────┘     └─────────────────┘
+```
+
+### Streaming Implementation
+
+The app uses the Vercel AI SDK's `createStreamableValue` for real-time token streaming:
+
+```typescript
+// Server Action (generateActions.ts)
+const result = streamText({
+  model,
+  messages,
+  temperature: 0.7,
+});
+
+const stream = createStreamableValue(result.textStream);
+return stream.value;
+
+// Client Hook (useSummarizer.ts)
 for await (const content of readStreamableValue(result)) {
   if (content) {
-    setSummary(content.trim()); // Directly update state with the latest content chunk
-    chunkCount++;
-    setProgress(70 + (chunkCount / numWords) * 30); // Update progress bar during summarizing
+    setSummary(content.trim());
+    // Update progress based on content length
   }
 }
 ```
 
-### Explanation of the Streaming Technique
+## 📜 Available Scripts
 
-1. **Initialize the Stream**:
+| Command         | Description                             |
+| --------------- | --------------------------------------- |
+| `npm run dev`   | Start development server with Turbopack |
+| `npm run build` | Build for production                    |
+| `npm run start` | Start production server                 |
+| `npm run lint`  | Run ESLint                              |
 
-   - The function `readStreamableValue(result)` starts reading the streamed response from the AI model. This method returns an asynchronous iterator that allows for processing the streamed content as it arrives.
+## 🤝 Contributing
 
-2. **Handle Progressive Updates**:
+Contributions are welcome! Here's how to get started:
 
-   - As each chunk of content (`content`) is received from the AI model, the `setSummary` function is called to update the application's state with the latest content. This ensures that the user sees the summary being generated in real-time, providing immediate feedback and a dynamic user experience.
+1. **Fork** the repository
+2. **Create** a feature branch: `git checkout -b feature/amazing-feature`
+3. **Commit** your changes: `git commit -m 'Add amazing feature'`
+4. **Push** to the branch: `git push origin feature/amazing-feature`
+5. **Open** a Pull Request
 
-3. **Track Progress**:
+### Development Guidelines
 
-   - The `chunkCount` variable is incremented with each chunk received. The `setProgress` function is then called to update the progress bar dynamically. The formula `(70 + (chunkCount / numWords) * 30)` is used to adjust the progress bar to reflect the summarization progress from 70% to 100%, assuming that scraping accounts for the first 70% of the task.
+- Follow the existing code style (Prettier + ESLint)
+- Write meaningful commit messages
+- Add tests for new features when applicable
+- Update documentation as needed
 
-4. **Smooth User Experience**:
-   - By incrementally updating both the summary content and the progress bar, the application maintains a smooth and responsive interface that keeps the user informed of the ongoing process.
+## 📋 Roadmap
 
-## Contributing
+- [ ] Add support for PDF documents
+- [ ] Implement summary history/caching
+- [ ] Add user authentication
+- [ ] Support for Q&A mode (ask questions about content)
+- [ ] Browser extension
+- [ ] API endpoint for programmatic access
 
-Contributions are welcome! Please follow these steps to contribute:
+## 🐛 Known Issues
 
-1. Fork the repository.
-2. Create a new branch (`git checkout -b feature/your-feature-name`).
-3. Make your changes and commit (`git commit -am 'Add new feature'`).
-4. Push to the branch (`git push origin feature/your-feature-name`).
-5. Create a Pull Request.
+- Some websites with aggressive bot protection may not be scrapeable
+- Very long pages may hit token limits on some models
 
-## Contact
-
-For any questions or feedback, feel free to reach out to [info@ignitechannel.com](mailto:info@ignitechannel.com).
-
-## License
+## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 📧 Contact
+
+For questions, feedback, or support:
+
+- **Email**: [info@ignitechannel.com](mailto:info@ignitechannel.com)
+- **GitHub Issues**: [Create an issue](https://github.com/brown2020/web-summarize/issues)
+
+---
+
+<p align="center">
+  Built with ❤️ using <a href="https://nextjs.org">Next.js</a> and the <a href="https://sdk.vercel.ai">Vercel AI SDK</a>
+</p>
