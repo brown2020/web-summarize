@@ -15,22 +15,21 @@ export const LanguageSchema = z.enum([
 
 export type Language = z.infer<typeof LanguageSchema>;
 
-export const ModelOptionSchema = z.object({
-  value: z.string(),
-  label: z.string(),
-});
+/** Single source of truth - derived from schema */
+export const LANGUAGES = LanguageSchema.options;
 
-export type ModelOption = z.infer<typeof ModelOptionSchema>;
+export type ModelOption = {
+  value: string;
+  label: string;
+};
 
-export const SummarizerStateSchema = z.object({
-  url: z.string().url("Invalid URL format"),
-  language: LanguageSchema,
-  modelName: z.string(),
-  numWords: z.number().min(50).max(500),
-  summary: z.string(),
-  isPending: z.boolean(),
-  progress: z.number(),
-  error: z.string().nullable(),
-});
-
-export type SummarizerState = z.infer<typeof SummarizerStateSchema>;
+export type SummarizerState = {
+  url: string;
+  language: Language;
+  modelName: string;
+  numWords: number;
+  summary: string;
+  isPending: boolean;
+  progress: number;
+  error: string | null;
+};

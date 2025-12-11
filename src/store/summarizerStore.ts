@@ -19,11 +19,11 @@ type SummarizerStore = SummarizerState & SummarizerActions;
 const initialState: SummarizerState = {
   url: "",
   language: "english",
-  modelName: "gpt-4.1",
-  numWords: VALIDATION.DEFAULT_WORDS || 200,
+  modelName: "gpt-4o",
+  numWords: VALIDATION.DEFAULT_WORDS,
   summary: "",
   isPending: false,
-  progress: PROGRESS_STEPS.INITIAL || 0,
+  progress: PROGRESS_STEPS.INITIAL,
   error: null,
 };
 
@@ -37,6 +37,5 @@ export const useSummarizerStore = create<SummarizerStore>((set) => ({
   setIsPending: (isPending) => set({ isPending }),
   setProgress: (progress) => set({ progress }),
   setError: (error) => set({ error }),
-  reset: () => set({ ...initialState }),
+  reset: () => set(initialState),
 }));
-

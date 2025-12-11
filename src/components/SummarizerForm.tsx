@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { useSummarizerStore } from "@/store/summarizerStore";
 import { Language } from "@/types/summarizer";
+import { capitalize } from "@/lib/utils";
 
 type SummarizerFormProps = {
   onSubmit: (e: React.FormEvent) => Promise<void>;
@@ -94,7 +95,7 @@ export function SummarizerForm({ onSubmit }: SummarizerFormProps) {
             <SelectContent>
               {LANGUAGES.map((lang) => (
                 <SelectItem key={lang} value={lang}>
-                  {lang.charAt(0).toUpperCase() + lang.slice(1)}
+                  {capitalize(lang)}
                 </SelectItem>
               ))}
             </SelectContent>

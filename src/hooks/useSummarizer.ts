@@ -5,6 +5,16 @@ import { toast } from "react-hot-toast";
 import axios from "axios";
 import { PROGRESS_STEPS } from "@/constants/app";
 
+function getErrorMessage(error: unknown, fallback: string): string {
+  if (axios.isAxiosError(error)) {
+    return (
+      error.response?.data?.error ||
+      "Network error. Please check your connection."
+    );
+  }
+  return error instanceof Error ? error.message : fallback;
+}
+
 export function useSummarizer() {
   const {
     url,
@@ -17,16 +27,6 @@ export function useSummarizer() {
     setError,
   } = useSummarizerStore();
 
-  const handleError = (error: unknown, fallbackMessage: string) => {
-    if (axios.isAxiosError(error)) {
-      return (
-        error.response?.data?.error ||
-        "Network error. Please check your connection."
-      );
-    }
-    return error instanceof Error ? error.message : fallbackMessage;
-  };
-
   const handleScrapeAndSummarize = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsPending(true);
@@ -37,46 +37,26 @@ export function useSummarizer() {
     try {
       if (!url.trim()) throw new Error("URL is required");
 
-      // 1. Fetch Content via Proxy
-      // We use a proxy to avoid CORS issues when fetching external HTML
+      // 1. Fetch and extract text via proxy (server-side extraction)
       const response = await axios.get(
         `/api/proxy?url=${encodeURIComponent(url)}`
       );
-      const html = response.data;
-      setProgress(PROGRESS_STEPS.URL_FETCHED);
-
-      // 2. Extract Text
-      // Simple client-side extraction. For production, consider moving this to the server/proxy
-      // to ensure consistent parsing and reduce client bundle size (cheerio is heavy).
-      // For this refactor, we'll stick to a lightweight DOM parser approach or assume the proxy returns text.
-      // If the proxy returns raw HTML:
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(html, "text/html");
-      
-      // Remove scripts, styles, and other non-content elements
-      const scripts = doc.querySelectorAll('script, style, noscript, iframe, svg');
-      scripts.forEach(script => script.remove());
-      
-      const text = doc.body.innerText.replace(/\s+/g, " ").trim();
-
-      if (!text || text.length < 50) {
-        throw new Error("Content too short or could not be extracted.");
-      }
+      const { text } = response.data;
       setProgress(PROGRESS_STEPS.CONTENT_EXTRACTED);
 
-      // 3. Generate Summary via Server Action
+      // 2. Generate summary via server action
       setProgress(PROGRESS_STEPS.AI_PROCESSING);
       const result = await generateSummary(text, language, modelName, numWords);
 
+      // 3. Stream the response
       let accumulatedContent = "";
+      const expectedChars = numWords * 5; // ~5 chars per word heuristic
+
       for await (const content of readStreamableValue(result)) {
         if (content) {
           accumulatedContent = content.trim();
           setSummary(accumulatedContent);
 
-          // Estimate progress based on expected length
-          // heuristic: 5 chars per word
-          const expectedChars = numWords * 5;
           const progressIncrement = Math.min(
             (accumulatedContent.length / expectedChars) * 30,
             30
@@ -88,7 +68,7 @@ export function useSummarizer() {
       setProgress(PROGRESS_STEPS.COMPLETE);
       toast.success("Summary generated successfully");
     } catch (err) {
-      const message = handleError(err, "Failed to generate summary");
+      const message = getErrorMessage(err, "Failed to generate summary");
       setError(message);
       toast.error(message);
       setProgress(PROGRESS_STEPS.INITIAL);
@@ -97,7 +77,5 @@ export function useSummarizer() {
     }
   };
 
-  return {
-    handleScrapeAndSummarize,
-  };
+  return { handleScrapeAndSummarize };
 }

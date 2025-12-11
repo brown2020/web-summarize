@@ -1,20 +1,10 @@
-import { Language, ModelOption } from "@/types/summarizer";
+import { LANGUAGES, type ModelOption } from "@/types/summarizer";
 
-export const LANGUAGES: Language[] = [
-  "english",
-  "french",
-  "spanish",
-  "german",
-  "italian",
-  "portuguese",
-  "chinese",
-  "russian",
-  "hindi",
-  "japanese",
-];
+// Re-export LANGUAGES from types (single source of truth)
+export { LANGUAGES };
 
 export const MODEL_OPTIONS: ModelOption[] = [
-  { value: "gpt-4.1", label: "GPT 4.1" },
+  { value: "gpt-4o", label: "GPT-4o" },
   { value: "gemini-1.5-pro", label: "Gemini 1.5 Pro" },
   { value: "claude-3-5-sonnet", label: "Claude 3.5 Sonnet" },
   { value: "llama-v3p1-405b", label: "Llama 3.1 405B Instruct" },
