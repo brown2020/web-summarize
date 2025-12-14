@@ -19,9 +19,9 @@ export const TIMEOUTS = {
 
 // Validation constants (single source of truth for numWords validation)
 export const VALIDATION = {
-  MIN_WORDS: 50,
-  MAX_WORDS: 1000,
-  DEFAULT_WORDS: 200,
+  MIN_WORDS: 10,
+  MAX_WORDS: 300,
+  DEFAULT_WORDS: 100,
   MIN_CONTENT_LENGTH: 50,
   MAX_REDIRECTS: 5,
 } as const;

@@ -34,6 +34,46 @@ export function SummarizerForm({ onSubmit }: SummarizerFormProps) {
   } = useSummarizerStore();
 
   const [urlError, setUrlError] = useState<string>("");
+  const [wordsInput, setWordsInput] = useState<string>(String(numWords));
+
+  const handleWordsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+
+    // Allow empty string for typing
+    if (value === "") {
+      setWordsInput("");
+      return;
+    }
+
+    // Only allow digits
+    if (!/^\d+$/.test(value)) return;
+
+    // Remove leading zeros and update
+    const cleanValue = value.replace(/^0+/, "") || "0";
+    setWordsInput(cleanValue);
+
+    const num = parseInt(cleanValue, 10);
+    if (!isNaN(num)) {
+      setNumWords(
+        Math.min(Math.max(num, VALIDATION.MIN_WORDS), VALIDATION.MAX_WORDS)
+      );
+    }
+  };
+
+  const handleWordsBlur = () => {
+    // On blur, ensure we have a valid value
+    const num = parseInt(wordsInput, 10);
+    if (isNaN(num) || num < VALIDATION.MIN_WORDS) {
+      setWordsInput(String(VALIDATION.MIN_WORDS));
+      setNumWords(VALIDATION.MIN_WORDS);
+    } else if (num > VALIDATION.MAX_WORDS) {
+      setWordsInput(String(VALIDATION.MAX_WORDS));
+      setNumWords(VALIDATION.MAX_WORDS);
+    } else {
+      setWordsInput(String(num));
+      setNumWords(num);
+    }
+  };
 
   const validateUrl = (value: string) => {
     setUrl(value);
@@ -123,12 +163,12 @@ export function SummarizerForm({ onSubmit }: SummarizerFormProps) {
         <Label htmlFor="words-input">Number of Words</Label>
         <Input
           id="words-input"
-          type="number"
-          value={numWords}
-          onChange={(e) => setNumWords(Number(e.target.value))}
+          type="text"
+          inputMode="numeric"
+          value={wordsInput}
+          onChange={handleWordsChange}
+          onBlur={handleWordsBlur}
           placeholder="Enter number of words"
-          min={VALIDATION.MIN_WORDS}
-          max={VALIDATION.MAX_WORDS}
           aria-describedby="words-help"
         />
         <p id="words-help" className="text-xs text-muted-foreground">
