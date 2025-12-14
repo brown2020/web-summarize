@@ -13,7 +13,7 @@ A modern AI-powered web page summarizer built with Next.js 16, React 19, and the
 ## ✨ Features
 
 - **🌐 Universal Web Scraping** — Fetch and extract content from any publicly accessible webpage
-- **🤖 Multi-Model Support** — Choose from 6 AI providers: OpenAI GPT-4o, Claude 3.5 Sonnet, Gemini 1.5 Pro, Mistral Large, Llama 3.1 405B, and xAI Grok
+- **🤖 Multi-Model Support** — Choose from 5 cutting-edge AI models: GPT-4.1, Claude Sonnet 4.5, Gemini 2.5 Flash, Mistral Large, and Llama 3.3 70B
 - **🌍 10 Languages** — Generate summaries in English, French, Spanish, German, Italian, Portuguese, Chinese, Russian, Hindi, or Japanese
 - **⚡ Real-Time Streaming** — Watch summaries generate token-by-token with live progress updates
 - **📱 Responsive Design** — Beautiful UI built with Tailwind CSS v4 and Radix UI primitives
@@ -56,7 +56,6 @@ A modern AI-powered web page summarizer built with Next.js 16, React 19, and the
    GOOGLE_GENERATIVE_AI_API_KEY=...
    MISTRAL_API_KEY=...
    FIREWORKS_API_KEY=...
-   XAI_API_KEY=...
    ```
 
 4. **Start the development server**
@@ -124,12 +123,11 @@ web-summarize/
 
 | Variable                       | Required | Description                             |
 | ------------------------------ | -------- | --------------------------------------- |
-| `OPENAI_API_KEY`               | Yes\*    | OpenAI API key for GPT-4o               |
-| `ANTHROPIC_API_KEY`            | No       | Anthropic API key for Claude 3.5 Sonnet |
-| `GOOGLE_GENERATIVE_AI_API_KEY` | No       | Google AI API key for Gemini 1.5 Pro    |
+| `OPENAI_API_KEY`               | Yes\*    | OpenAI API key for GPT-4.1              |
+| `ANTHROPIC_API_KEY`            | No       | Anthropic API key for Claude Sonnet 4.5 |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | No       | Google AI API key for Gemini 2.5 Flash  |
 | `MISTRAL_API_KEY`              | No       | Mistral API key for Mistral Large       |
-| `FIREWORKS_API_KEY`            | No       | Fireworks AI API key for Llama 3.1 405B |
-| `XAI_API_KEY`                  | No       | xAI API key for Grok                    |
+| `FIREWORKS_API_KEY`            | No       | Fireworks API key for Llama 3.3 70B     |
 
 \*At least one AI provider API key is required. OpenAI is the default fallback.
 
@@ -145,14 +143,16 @@ web-summarize/
 
 ### AI & LLM Integration
 
-| Package                                                                                 | Version | Purpose                           |
-| --------------------------------------------------------------------------------------- | ------- | --------------------------------- |
-| [ai](https://sdk.vercel.ai/)                                                            | 5.x     | Vercel AI SDK core for streaming  |
-| [@ai-sdk/openai](https://sdk.vercel.ai/providers/ai-sdk-providers/openai)               | 2.x     | OpenAI GPT models                 |
-| [@ai-sdk/anthropic](https://sdk.vercel.ai/providers/ai-sdk-providers/anthropic)         | 2.x     | Anthropic Claude models           |
-| [@ai-sdk/google](https://sdk.vercel.ai/providers/ai-sdk-providers/google-generative-ai) | 2.x     | Google Gemini models              |
-| [@ai-sdk/mistral](https://sdk.vercel.ai/providers/ai-sdk-providers/mistral)             | 2.x     | Mistral AI models                 |
-| [@ai-sdk/rsc](https://sdk.vercel.ai/docs/ai-sdk-rsc)                                    | 1.x     | React Server Components streaming |
+| Package                                                                                 | Version | Purpose                                 |
+| --------------------------------------------------------------------------------------- | ------- | --------------------------------------- |
+| [ai](https://sdk.vercel.ai/)                                                            | 5.x     | Vercel AI SDK core for streaming        |
+| [@ai-sdk/openai](https://sdk.vercel.ai/providers/ai-sdk-providers/openai)               | 2.x     | OpenAI GPT-4.1 + OpenAI-compatible APIs |
+| [@ai-sdk/anthropic](https://sdk.vercel.ai/providers/ai-sdk-providers/anthropic)         | 2.x     | Anthropic Claude Sonnet 4.5             |
+| [@ai-sdk/google](https://sdk.vercel.ai/providers/ai-sdk-providers/google-generative-ai) | 2.x     | Google Gemini 2.5 Flash                 |
+| [@ai-sdk/mistral](https://sdk.vercel.ai/providers/ai-sdk-providers/mistral)             | 2.x     | Mistral Large                           |
+| [@ai-sdk/rsc](https://sdk.vercel.ai/docs/ai-sdk-rsc)                                    | 1.x     | React Server Components streaming       |
+
+> **Note:** Llama 3.3 70B uses Fireworks via the OpenAI-compatible provider (`createOpenAI`).
 
 ### UI & Styling
 

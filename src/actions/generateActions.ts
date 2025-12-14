@@ -10,15 +10,12 @@ import { z } from "zod";
 import { LanguageSchema } from "@/types/summarizer";
 import { VALIDATION } from "@/constants/app";
 
+// Fireworks provider (OpenAI-compatible) for Llama
+// Model IDs from: https://ai-sdk.dev/providers/ai-sdk-providers/fireworks
 const fireworks = createOpenAI({
-  apiKey: process.env.FIREWORKS_API_KEY ?? "",
+  name: "fireworks",
   baseURL: "https://api.fireworks.ai/inference/v1",
-});
-
-const xai = createOpenAI({
-  name: "xai",
-  baseURL: "https://api.x.ai/v1",
-  apiKey: process.env.XAI_API_KEY ?? "",
+  apiKey: process.env.FIREWORKS_API_KEY ?? "",
 });
 
 // Input validation schema using centralized constants
@@ -29,29 +26,31 @@ const GenerateSummarySchema = z.object({
   numWords: z.number().min(VALIDATION.MIN_WORDS).max(VALIDATION.MAX_WORDS),
 });
 
-async function getModel(modelName: string) {
+function getModel(modelName: string) {
   switch (modelName) {
-    case "gpt-4o":
-      return openai("gpt-4o");
+    // OpenAI
+    case "gpt-4.1":
+      return openai("gpt-4.1");
 
-    case "gemini-1.5-pro":
-      return google("models/gemini-1.5-pro-latest");
+    // Anthropic - https://ai-sdk.dev/providers/ai-sdk-providers/anthropic
+    case "claude-sonnet-4.5":
+      return anthropic("claude-sonnet-4-5");
 
-    case "claude-3-5-sonnet":
-      return anthropic("claude-3-5-sonnet-20241022");
+    // Google - https://ai-sdk.dev/providers/ai-sdk-providers/google-generative-ai
+    case "gemini-2.5-flash":
+      return google("gemini-2.5-flash");
 
+    // Mistral
     case "mistral-large":
       return mistral("mistral-large-latest");
 
-    case "llama-v3p1-405b":
-      return fireworks("accounts/fireworks/models/llama-v3p1-405b-instruct");
-
-    case "xai-grok":
-      return xai("grok-beta");
+    // Llama via Fireworks - https://ai-sdk.dev/providers/ai-sdk-providers/fireworks
+    case "llama-v3p3-70b":
+      return fireworks("accounts/fireworks/models/llama-v3p3-70b-instruct");
 
     default:
-      console.warn(`Unsupported model: ${modelName}, falling back to GPT-4o`);
-      return openai("gpt-4o");
+      console.warn(`Unsupported model: ${modelName}, falling back to GPT-4.1`);
+      return openai("gpt-4.1");
   }
 }
 
@@ -61,7 +60,7 @@ async function generateResponse(
   modelName: string
 ) {
   try {
-    const model = await getModel(modelName);
+    const model = getModel(modelName);
 
     const messages: ModelMessage[] = [
       {
@@ -83,8 +82,8 @@ async function generateResponse(
     const stream = createStreamableValue(result.textStream);
     return stream.value;
   } catch (error) {
-    console.error("Error generating response:", error);
-    throw new Error("Failed to generate AI response. Please try again.");
+    console.error("Error in generateResponse:", error);
+    throw error;
   }
 }
 
@@ -106,9 +105,16 @@ export async function generateSummary(
     throw new Error("Invalid input parameters for summary generation.");
   }
 
-  const systemPrompt = `You are a helpful summarization and translation assistant. Your job is to generate a summary of the provided document in the provided language. The summary should be concise, informative, and approximately ${numWords} words. Present the summary immediately without introduction (e.g., do NOT say "Here is a summary..."). Use Markdown formatting where appropriate (bullet points, bold text, etc.).`;
+  const systemPrompt = `You are a summarization assistant. Generate a summary of the document below.
 
-  const userPrompt = `Provided document:\n${document}\n\nTarget language:\n${language}`;
+STRICT REQUIREMENTS:
+- Write approximately ${numWords} words
+- Write in ${language}
+- Start immediately with the summary content (no preamble like "Here is..." or "This document...")
+- Use clean, flowing paragraphs only - NO markdown, NO bullet points, NO bold text, NO headers
+- Be concise and informative`;
+
+  const userPrompt = `Document to summarize:\n\n${document}`;
 
   return generateResponse(systemPrompt, userPrompt, modelName);
 }

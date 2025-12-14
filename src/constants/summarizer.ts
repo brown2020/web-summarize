@@ -4,10 +4,9 @@ import { LANGUAGES, type ModelOption } from "@/types/summarizer";
 export { LANGUAGES };
 
 export const MODEL_OPTIONS: ModelOption[] = [
-  { value: "gpt-4o", label: "GPT-4o" },
-  { value: "gemini-1.5-pro", label: "Gemini 1.5 Pro" },
-  { value: "claude-3-5-sonnet", label: "Claude 3.5 Sonnet" },
-  { value: "llama-v3p1-405b", label: "Llama 3.1 405B Instruct" },
-  { value: "mistral-large", label: "Mistral Large" },
-  { value: "xai-grok", label: "xAI Grok Beta" },
+  { value: "gpt-4.1", label: "GPT-4.1 (OpenAI)" },
+  { value: "claude-sonnet-4.5", label: "Claude Sonnet 4.5 (Anthropic)" },
+  { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash (Google)" },
+  { value: "mistral-large", label: "Mistral Large (Mistral)" },
+  { value: "llama-v3p3-70b", label: "Llama 3.3 70B (Fireworks)" },
 ];
