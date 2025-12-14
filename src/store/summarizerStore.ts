@@ -7,6 +7,7 @@ interface SummarizerActions {
   setLanguage: (language: Language) => void;
   setModelName: (modelName: string) => void;
   setNumWords: (numWords: number) => void;
+  setExtractedText: (extractedText: string) => void;
   setSummary: (summary: string) => void;
   setIsPending: (isPending: boolean) => void;
   setProgress: (progress: number) => void;
@@ -21,6 +22,7 @@ const initialState: SummarizerState = {
   language: "english",
   modelName: "gpt-4.1",
   numWords: VALIDATION.DEFAULT_WORDS,
+  extractedText: "",
   summary: "",
   isPending: false,
   progress: PROGRESS_STEPS.INITIAL,
@@ -33,6 +35,7 @@ export const useSummarizerStore = create<SummarizerStore>((set) => ({
   setLanguage: (language) => set({ language }),
   setModelName: (modelName) => set({ modelName }),
   setNumWords: (numWords) => set({ numWords }),
+  setExtractedText: (extractedText) => set({ extractedText }),
   setSummary: (summary) => set({ summary }),
   setIsPending: (isPending) => set({ isPending }),
   setProgress: (progress) => set({ progress }),

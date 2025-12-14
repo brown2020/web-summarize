@@ -28,6 +28,7 @@ export type SummarizerState = {
   language: Language;
   modelName: string;
   numWords: number;
+  extractedText: string;
   summary: string;
   isPending: boolean;
   progress: number;

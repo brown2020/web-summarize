@@ -17,7 +17,7 @@ import { Language } from "@/types/summarizer";
 import { capitalize } from "@/lib/utils";
 
 type SummarizerFormProps = {
-  onSubmit: (e: React.FormEvent) => Promise<void>;
+  onSubmit: () => Promise<void>;
 };
 
 export function SummarizerForm({ onSubmit }: SummarizerFormProps) {
@@ -98,7 +98,7 @@ export function SummarizerForm({ onSubmit }: SummarizerFormProps) {
       setUrl(validation.normalizedUrl);
     }
 
-    onSubmit(e);
+    onSubmit();
   };
 
   return (
