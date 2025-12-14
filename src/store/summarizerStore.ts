@@ -39,3 +39,4 @@ export const useSummarizerStore = create<SummarizerStore>((set) => ({
   setError: (error) => set({ error }),
   reset: () => set(initialState),
 }));
+
