@@ -15,10 +15,12 @@ A modern AI-powered web page summarizer built with Next.js 16, React 19, and the
 - **🌐 Universal Web Scraping** — Fetch and extract content from any publicly accessible webpage
 - **🤖 Multi-Model Support** — Choose from 5 cutting-edge AI models: GPT-4.1, Claude Sonnet 4.5, Gemini 2.5 Flash, Mistral Large, and Llama 3.3 70B
 - **🌍 10 Languages** — Generate summaries in English, French, Spanish, German, Italian, Portuguese, Chinese, Russian, Hindi, or Japanese
-- **⚡ Real-Time Streaming** — Watch summaries generate token-by-token with live progress updates
+- **⚡ Real-Time Streaming** — Watch summaries generate with live progress updates
 - **📱 Responsive Design** — Beautiful UI built with Tailwind CSS v4 and Radix UI primitives
 - **🔒 Server-Side Processing** — Secure API key handling with Next.js Server Actions
-- **📝 Markdown Output** — Rich formatting with headers, bullet points, and emphasis
+- **🧭 Polished run controls** — Cancel in-flight runs, Retry on error, and Regenerate on demand
+- **🧰 Output actions** — Copy, Download as Markdown, Share a link (prefilled settings), and open the source page
+- **🛠️ Extraction editing (advanced)** — Review/edit extracted text and regenerate the summary
 
 ## 🚀 Quick Start
 
@@ -71,8 +73,38 @@ A modern AI-powered web page summarizer built with Next.js 16, React 19, and the
 1. **Enter a URL** — Paste any webpage URL (protocol is auto-added if missing)
 2. **Select Language** — Choose your preferred output language
 3. **Choose AI Model** — Pick from available LLM providers
-4. **Set Word Count** — Specify summary length (50-1000 words)
+4. **Set Word Count** — Specify summary length (10-300 words)
 5. **Generate** — Click "Scrape and Summarize" and watch the magic happen!
+
+### Run Controls
+
+- **Cancel**: Stop the current fetch/summarization run.
+- **Retry**: If a run fails (e.g., scraping blocked), retry with the same settings.
+- **Regenerate**: Generate a new summary for the current URL/settings.
+
+### Output Actions
+
+- **Copy**: Copies the summary to your clipboard.
+- **Download**: Downloads the summary as a `.md` file.
+- **Share link**: Creates a link that pre-fills the form with your current settings.
+- **Open source**: Opens the original URL in a new tab.
+
+### Advanced: Edit extracted text
+
+If the scraper includes nav/ads or misses content, expand **“Edit extracted text (advanced)”**, adjust the extracted text, and click **“Regenerate from edited text”**.
+
+### Shareable URL parameters
+
+The home page supports query parameters to pre-fill settings:
+
+- `url`: target URL
+- `lang`: language (e.g. `english`)
+- `model`: model id (e.g. `gpt-4.1`)
+- `words`: word count (10–300)
+
+Example:
+
+`/?url=https%3A%2F%2Fexample.com&lang=english&model=gpt-4.1&words=120`
 
 ## 🏗️ Project Structure
 
