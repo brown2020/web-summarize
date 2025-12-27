@@ -4,6 +4,24 @@ import * as cheerio from "cheerio";
 import { validateAndNormalizeUrl } from "@/utils/url-validation";
 import { TIMEOUTS, VALIDATION } from "@/constants/app";
 
+const HTTP_ERROR_MESSAGES: Record<number, string> = {
+  404: "The requested webpage was not found. Please check the URL and try again.",
+  403: "Access to this webpage is forbidden. The website may be blocking our request.",
+  429: "Too many requests. Please try again later.",
+};
+
+const AXIOS_CODE_MESSAGES: Record<string, string> = {
+  ENOTFOUND: "Website not found. Please check the URL and try again.",
+  ETIMEDOUT: "Request timed out. The website might be slow or unavailable.",
+  ECONNABORTED: "Request timed out. The website might be slow or unavailable.",
+  ECONNREFUSED: "Connection refused. The website may be down.",
+  ECONNRESET: "Connection was reset. Please try again.",
+};
+
+function jsonError(message: string, status: number) {
+  return NextResponse.json({ error: message }, { status });
+}
+
 /**
  * Extracts readable text content from HTML
  */
@@ -27,18 +45,12 @@ export async function GET(req: NextRequest) {
   const url = searchParams.get("url");
 
   if (!url) {
-    return NextResponse.json(
-      { error: "URL parameter is required." },
-      { status: 400 }
-    );
+    return jsonError("URL parameter is required.", 400);
   }
 
   const validation = validateAndNormalizeUrl(url);
   if (!validation.isValid) {
-    return NextResponse.json(
-      { error: validation.error || "Invalid URL format" },
-      { status: 400 }
-    );
+    return jsonError(validation.error || "Invalid URL format", 400);
   }
 
   const validUrl = validation.normalizedUrl!;
@@ -55,30 +67,18 @@ export async function GET(req: NextRequest) {
     });
 
     if (response.status >= 400) {
-      const errorMessages: Record<number, string> = {
-        404: "The requested webpage was not found. Please check the URL and try again.",
-        403: "Access to this webpage is forbidden. The website may be blocking our request.",
-        429: "Too many requests. Please try again later.",
-      };
-
       const errorMessage =
-        errorMessages[response.status] ||
+        HTTP_ERROR_MESSAGES[response.status] ||
         `Website returned error ${response.status}: ${response.statusText}`;
 
-      return NextResponse.json(
-        { error: errorMessage },
-        { status: response.status }
-      );
+      return jsonError(errorMessage, response.status);
     }
 
     // Extract text content server-side
     const text = extractText(response.data);
 
     if (!text || text.length < VALIDATION.MIN_CONTENT_LENGTH) {
-      return NextResponse.json(
-        { error: "Could not extract sufficient content from the webpage." },
-        { status: 422 }
-      );
+      return jsonError("Could not extract sufficient content from the webpage.", 422);
     }
 
     return NextResponse.json({ text }, { status: 200 });
@@ -87,19 +87,9 @@ export async function GET(req: NextRequest) {
     let statusCode = 400;
 
     if (axios.isAxiosError(error)) {
-      const errorMessages: Record<string, string> = {
-        ENOTFOUND: "Website not found. Please check the URL and try again.",
-        ETIMEDOUT:
-          "Request timed out. The website might be slow or unavailable.",
-        ECONNABORTED:
-          "Request timed out. The website might be slow or unavailable.",
-        ECONNREFUSED: "Connection refused. The website may be down.",
-        ECONNRESET: "Connection was reset. Please try again.",
-      };
+      errorMessage = AXIOS_CODE_MESSAGES[error.code ?? ""] || errorMessage;
 
-      errorMessage = errorMessages[error.code ?? ""] || errorMessage;
-
-      if (!errorMessages[error.code ?? ""]) {
+      if (!AXIOS_CODE_MESSAGES[error.code ?? ""]) {
         if (error.response) {
           errorMessage = `Server returned error ${error.response.status}: ${error.response.statusText}`;
           statusCode = error.response.status;
@@ -110,6 +100,6 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ error: errorMessage }, { status: statusCode });
+    return jsonError(errorMessage, statusCode);
   }
 }

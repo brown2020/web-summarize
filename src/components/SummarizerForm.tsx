@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import { useSummarizerStore } from "@/store/summarizerStore";
 import { Language } from "@/types/summarizer";
-import { capitalize } from "@/lib/utils";
+import { capitalize, clampNumber } from "@/lib/utils";
 
 type SummarizerFormProps = {
   onSubmit: () => Promise<void>;
@@ -54,25 +54,20 @@ export function SummarizerForm({ onSubmit }: SummarizerFormProps) {
 
     const num = parseInt(cleanValue, 10);
     if (!isNaN(num)) {
-      setNumWords(
-        Math.min(Math.max(num, VALIDATION.MIN_WORDS), VALIDATION.MAX_WORDS)
-      );
+      setNumWords(clampNumber(num, VALIDATION.MIN_WORDS, VALIDATION.MAX_WORDS));
     }
   };
 
   const handleWordsBlur = () => {
     // On blur, ensure we have a valid value
     const num = parseInt(wordsInput, 10);
-    if (isNaN(num) || num < VALIDATION.MIN_WORDS) {
-      setWordsInput(String(VALIDATION.MIN_WORDS));
-      setNumWords(VALIDATION.MIN_WORDS);
-    } else if (num > VALIDATION.MAX_WORDS) {
-      setWordsInput(String(VALIDATION.MAX_WORDS));
-      setNumWords(VALIDATION.MAX_WORDS);
-    } else {
-      setWordsInput(String(num));
-      setNumWords(num);
-    }
+    const nextNumWords = clampNumber(
+      Number.isFinite(num) ? num : VALIDATION.MIN_WORDS,
+      VALIDATION.MIN_WORDS,
+      VALIDATION.MAX_WORDS
+    );
+    setWordsInput(String(nextNumWords));
+    setNumWords(nextNumWords);
   };
 
   const validateUrl = (value: string) => {
@@ -98,7 +93,7 @@ export function SummarizerForm({ onSubmit }: SummarizerFormProps) {
       setUrl(validation.normalizedUrl);
     }
 
-    onSubmit();
+    void onSubmit();
   };
 
   return (

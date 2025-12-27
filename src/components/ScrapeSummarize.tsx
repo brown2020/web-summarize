@@ -11,7 +11,8 @@ import { Button } from "@/components/ui/button";
 import { toast } from "react-hot-toast";
 import { PROGRESS_STEPS, VALIDATION } from "@/constants/app";
 import { useEffect, useMemo, useState } from "react";
-import { LANGUAGES } from "@/types/summarizer";
+import { LanguageSchema } from "@/types/summarizer";
+import { clampNumber } from "@/lib/utils";
 
 export default function ScrapeSummarize() {
   const {
@@ -47,11 +48,9 @@ export default function ScrapeSummarize() {
     const nextWords = params.get("words");
 
     if (nextUrl) setUrl(nextUrl);
-    if (
-      nextLanguage &&
-      (LANGUAGES as readonly string[]).includes(nextLanguage)
-    ) {
-      setLanguage(nextLanguage as any);
+    if (nextLanguage) {
+      const parsedLanguage = LanguageSchema.safeParse(nextLanguage);
+      if (parsedLanguage.success) setLanguage(parsedLanguage.data);
     }
     if (typeof nextModel === "string" && nextModel.length > 0)
       setModelName(nextModel);
@@ -59,8 +58,9 @@ export default function ScrapeSummarize() {
       const n = Number(nextWords);
       if (Number.isFinite(n)) {
         setNumWords(
-          Math.min(
-            Math.max(Math.floor(n), VALIDATION.MIN_WORDS),
+          clampNumber(
+            Math.floor(n),
+            VALIDATION.MIN_WORDS,
             VALIDATION.MAX_WORDS
           )
         );
@@ -172,7 +172,7 @@ export default function ScrapeSummarize() {
           <CardContent className="pt-6 space-y-3">
             <p className="text-destructive">{error}</p>
             <div className="flex flex-wrap gap-2">
-              <Button onClick={scrapeAndSummarize}>Retry</Button>
+              <Button onClick={() => void scrapeAndSummarize()}>Retry</Button>
               {url ? (
                 <Button variant="outline" asChild>
                   <a href={url} target="_blank" rel="noreferrer">
@@ -207,7 +207,9 @@ export default function ScrapeSummarize() {
                     </a>
                   </Button>
                 ) : null}
-                <Button onClick={scrapeAndSummarize}>Regenerate</Button>
+                <Button onClick={() => void scrapeAndSummarize()}>
+                  Regenerate
+                </Button>
               </div>
             </div>
           </CardHeader>
@@ -233,7 +235,7 @@ export default function ScrapeSummarize() {
                   />
                   <div className="flex flex-wrap gap-2">
                     <Button
-                      onClick={() => summarizeText(editedText)}
+                      onClick={() => void summarizeText(editedText)}
                       disabled={isPending || editedText.trim().length === 0}
                     >
                       Regenerate from edited text
