@@ -3,7 +3,7 @@ import { generateSummary } from "@/actions/generateActions";
 import { readStreamableValue } from "@ai-sdk/rsc";
 import { toast } from "react-hot-toast";
 import axios from "axios";
-import { PROGRESS_STEPS } from "@/constants/app";
+import { PROGRESS_STEPS, VALIDATION } from "@/constants/app";
 import { useRef } from "react";
 
 function getErrorMessage(error: unknown, fallback: string): string {
@@ -38,6 +38,15 @@ export function useSummarizer() {
   const cancel = () => {
     abortRef.current?.abort();
     abortRef.current = null;
+    toast("Cancelled (stops the stream locally)");
+  };
+
+  const normalizeDocument = (document: string) => {
+    if (document.length <= VALIDATION.MAX_DOCUMENT_CHARS) return document;
+    toast(
+      `Content was long and has been truncated to ${VALIDATION.MAX_DOCUMENT_CHARS.toLocaleString()} characters.`
+    );
+    return document.slice(0, VALIDATION.MAX_DOCUMENT_CHARS);
   };
 
   const streamSummary = async (
@@ -46,12 +55,13 @@ export function useSummarizer() {
     controller: AbortController
   ) => {
     try {
-      if (!document.trim()) throw new Error("No content to summarize.");
+      const normalizedDocument = normalizeDocument(document);
+      if (!normalizedDocument.trim()) throw new Error("No content to summarize.");
 
       // Generate summary via server action
       setProgress(PROGRESS_STEPS.AI_PROCESSING);
       const result = await generateSummary(
-        document,
+        normalizedDocument,
         language,
         modelName,
         numWords
@@ -100,14 +110,16 @@ export function useSummarizer() {
     const controller = new AbortController();
     abortRef.current = controller;
 
+    const normalizedDocument = normalizeDocument(document);
+
     setIsPending(true);
     setSummary("");
-    setExtractedText(document);
+    setExtractedText(normalizedDocument);
     setProgress(PROGRESS_STEPS.CONTENT_EXTRACTED);
     setError(null);
 
     try {
-      await streamSummary(document, runId, controller);
+      await streamSummary(normalizedDocument, runId, controller);
     } finally {
       setIsPending(false);
       abortRef.current = null;
@@ -143,11 +155,12 @@ export function useSummarizer() {
       }
 
       const { text } = response.data as { text: string };
-      setExtractedText(text);
+      const normalizedText = normalizeDocument(text);
+      setExtractedText(normalizedText);
       setProgress(PROGRESS_STEPS.CONTENT_EXTRACTED);
 
       // 2. Generate summary via server action (streamed)
-      await streamSummary(text, runId, controller);
+      await streamSummary(normalizedText, runId, controller);
     } catch (err) {
       const message = getErrorMessage(err, "Failed to generate summary");
       if (message === "Request cancelled.") {

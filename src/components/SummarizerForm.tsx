@@ -1,4 +1,4 @@
-import { LANGUAGES, MODEL_OPTIONS } from "@/constants/summarizer";
+import { LANGUAGES } from "@/constants/summarizer";
 import { VALIDATION } from "@/constants/app";
 import { validateAndNormalizeUrl } from "@/utils/url-validation";
 import { useState } from "react";
@@ -13,14 +13,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useSummarizerStore } from "@/store/summarizerStore";
-import { Language } from "@/types/summarizer";
+import { Language, type ModelOption } from "@/types/summarizer";
 import { capitalize, clampNumber } from "@/lib/utils";
 
 type SummarizerFormProps = {
   onSubmit: () => Promise<void>;
+  modelOptions: ModelOption[];
 };
 
-export function SummarizerForm({ onSubmit }: SummarizerFormProps) {
+export function SummarizerForm({ onSubmit, modelOptions }: SummarizerFormProps) {
   const {
     url,
     setUrl,
@@ -35,6 +36,7 @@ export function SummarizerForm({ onSubmit }: SummarizerFormProps) {
 
   const [urlError, setUrlError] = useState<string>("");
   const [wordsInput, setWordsInput] = useState<string>(String(numWords));
+  const hasModels = modelOptions.length > 0;
 
   const handleWordsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -139,18 +141,27 @@ export function SummarizerForm({ onSubmit }: SummarizerFormProps) {
 
         <div className="space-y-2">
           <Label htmlFor="model-select">Select Model</Label>
-          <Select value={modelName} onValueChange={setModelName}>
+          <Select
+            value={modelName}
+            onValueChange={setModelName}
+            disabled={!hasModels}
+          >
             <SelectTrigger id="model-select">
-              <SelectValue placeholder="Select Model" />
+              <SelectValue placeholder={hasModels ? "Select Model" : "No models available"} />
             </SelectTrigger>
             <SelectContent>
-              {MODEL_OPTIONS.map((model) => (
+              {modelOptions.map((model) => (
                 <SelectItem key={model.value} value={model.value}>
                   {model.label}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
+          {!hasModels && (
+            <p className="text-xs text-destructive">
+              No AI providers are configured. Add an API key to enable models.
+            </p>
+          )}
         </div>
       </div>
 
@@ -173,7 +184,7 @@ export function SummarizerForm({ onSubmit }: SummarizerFormProps) {
 
       <Button
         type="submit"
-        disabled={isPending || !!urlError}
+        disabled={isPending || !!urlError || !hasModels}
         className="w-full"
         size="lg"
       >

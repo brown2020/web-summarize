@@ -9,6 +9,7 @@ import { anthropic } from "@ai-sdk/anthropic";
 import { z } from "zod";
 import { LanguageSchema } from "@/types/summarizer";
 import { VALIDATION } from "@/constants/app";
+import { assertModelAvailable } from "@/lib/model-availability";
 
 // Fireworks provider (OpenAI-compatible) for Llama
 // Model IDs from: https://ai-sdk.dev/providers/ai-sdk-providers/fireworks
@@ -20,13 +21,21 @@ const fireworks = createOpenAI({
 
 // Input validation schema using centralized constants
 const GenerateSummarySchema = z.object({
-  document: z.string().min(1, "Document content is required"),
+  document: z
+    .string()
+    .min(1, "Document content is required")
+    .max(
+      VALIDATION.MAX_DOCUMENT_CHARS,
+      "Document is too long to summarize."
+    ),
   language: LanguageSchema,
   modelName: z.string(),
   numWords: z.number().min(VALIDATION.MIN_WORDS).max(VALIDATION.MAX_WORDS),
 });
 
 function getModel(modelName: string) {
+  assertModelAvailable(modelName);
+
   switch (modelName) {
     // OpenAI
     case "gpt-4.1":
@@ -49,8 +58,7 @@ function getModel(modelName: string) {
       return fireworks("accounts/fireworks/models/llama-v3p3-70b-instruct");
 
     default:
-      console.warn(`Unsupported model: ${modelName}, falling back to GPT-4.1`);
-      return openai("gpt-4.1");
+      throw new Error("Unsupported model selected.");
   }
 }
 
@@ -102,8 +110,17 @@ export async function generateSummary(
 
   if (!validationResult.success) {
     console.error("Validation error:", validationResult.error);
-    throw new Error("Invalid input parameters for summary generation.");
+    const message =
+      validationResult.error.issues[0]?.message ??
+      "Invalid input parameters for summary generation.";
+    throw new Error(message);
   }
+
+  console.info("[summary] start", {
+    modelName,
+    numWords,
+    chars: document.length,
+  });
 
   const systemPrompt = `You are a summarization assistant. Generate a summary of the document below.
 

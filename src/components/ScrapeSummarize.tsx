@@ -13,8 +13,13 @@ import { PROGRESS_STEPS, VALIDATION } from "@/constants/app";
 import { useEffect, useMemo, useState } from "react";
 import { LanguageSchema } from "@/types/summarizer";
 import { clampNumber } from "@/lib/utils";
+import type { ModelOption } from "@/types/summarizer";
 
-export default function ScrapeSummarize() {
+type ScrapeSummarizeProps = {
+  modelOptions: ModelOption[];
+};
+
+export default function ScrapeSummarize({ modelOptions }: ScrapeSummarizeProps) {
   const {
     url,
     language,
@@ -38,6 +43,14 @@ export default function ScrapeSummarize() {
   useEffect(() => {
     setEditedText(extractedText);
   }, [extractedText]);
+
+  useEffect(() => {
+    if (!modelOptions.length) return;
+    const hasModel = modelOptions.some((model) => model.value === modelName);
+    if (!hasModel) {
+      setModelName(modelOptions[0].value);
+    }
+  }, [modelName, modelOptions, setModelName]);
 
   // Lightweight deep-linking so "Share link" is meaningful.
   useEffect(() => {
@@ -146,7 +159,7 @@ export default function ScrapeSummarize() {
           <CardTitle>Configuration</CardTitle>
         </CardHeader>
         <CardContent>
-          <SummarizerForm onSubmit={scrapeAndSummarize} />
+          <SummarizerForm onSubmit={scrapeAndSummarize} modelOptions={modelOptions} />
         </CardContent>
       </Card>
 

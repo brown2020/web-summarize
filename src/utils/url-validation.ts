@@ -32,8 +32,37 @@ export function validateAndNormalizeUrl(url: string): UrlValidationResult {
   try {
     const parsedUrl = new URL(trimmedUrl);
 
+    if (!["http:", "https:"].includes(parsedUrl.protocol)) {
+      return {
+        isValid: false,
+        error: "Only http and https URLs are supported",
+      };
+    }
+
+    if (parsedUrl.username || parsedUrl.password) {
+      return {
+        isValid: false,
+        error: "URLs with embedded credentials are not allowed",
+      };
+    }
+
+    const hostname = parsedUrl.hostname.toLowerCase();
+
+    if (
+      hostname === "localhost" ||
+      hostname === "127.0.0.1" ||
+      hostname === "0.0.0.0" ||
+      hostname === "::1" ||
+      hostname.endsWith(".local")
+    ) {
+      return {
+        isValid: false,
+        error: "Localhost URLs are not allowed",
+      };
+    }
+
     // Must have a hostname with at least one dot
-    if (!parsedUrl.hostname.includes(".")) {
+    if (!hostname.includes(".")) {
       return {
         isValid: false,
         error: "Please enter a valid domain name (e.g., example.com)",

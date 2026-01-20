@@ -1,5 +1,8 @@
 import ScrapeSummarize from "@/components/ScrapeSummarize";
+import { getAvailableModels } from "@/lib/model-availability";
 
 export default function HomePage() {
-  return <ScrapeSummarize />;
+  const modelOptions = getAvailableModels();
+
+  return <ScrapeSummarize modelOptions={modelOptions} />;
 }

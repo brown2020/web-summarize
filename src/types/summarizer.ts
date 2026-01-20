@@ -23,6 +23,10 @@ export type ModelOption = {
   label: string;
 };
 
+export type ModelCatalogItem = ModelOption & {
+  envKey?: string;
+};
+
 export type SummarizerState = {
   url: string;
   language: Language;
