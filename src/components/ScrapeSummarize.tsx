@@ -52,7 +52,8 @@ export default function ScrapeSummarize({ modelOptions }: ScrapeSummarizeProps) 
     }
   }, [modelName, modelOptions, setModelName]);
 
-  // Lightweight deep-linking so "Share link" is meaningful.
+  // Parse URL params on mount for deep-linking (e.g., "Share link" feature).
+  // Zustand setters are stable, so this only runs once on mount.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const nextUrl = params.get("url");
@@ -79,7 +80,8 @@ export default function ScrapeSummarize({ modelOptions }: ScrapeSummarizeProps) 
         );
       }
     }
-  }, [setLanguage, setModelName, setNumWords, setUrl]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const progressLabel = useMemo(() => {
     if (!isPending) return "";
@@ -103,7 +105,6 @@ export default function ScrapeSummarize({ modelOptions }: ScrapeSummarizeProps) 
   const handleDownloadMarkdown = () => {
     const markdown = summary.trim() ? `${summary.trim()}\n` : "";
     const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
-    const a = document.createElement("a");
     const safeHost = (() => {
       try {
         return new URL(url).hostname.replace(/\./g, "-");
@@ -111,12 +112,14 @@ export default function ScrapeSummarize({ modelOptions }: ScrapeSummarizeProps) 
         return "web";
       }
     })();
-    a.href = URL.createObjectURL(blob);
+    const objectUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = objectUrl;
     a.download = `summary-${safeHost}.md`;
     document.body.appendChild(a);
     a.click();
     a.remove();
-    URL.revokeObjectURL(a.href);
+    URL.revokeObjectURL(objectUrl);
   };
 
   const handleShareLink = async () => {

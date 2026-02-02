@@ -35,6 +35,9 @@ export function useSummarizer() {
   const abortRef = useRef<AbortController | null>(null);
   const runIdRef = useRef(0);
 
+  // Note: Cancellation only stops reading the stream client-side. The server
+  // action continues running because RSC server actions don't accept abort
+  // signals. This is a known limitation—the toast message reflects this.
   const cancel = () => {
     abortRef.current?.abort();
     abortRef.current = null;

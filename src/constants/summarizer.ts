@@ -1,4 +1,4 @@
-import { LANGUAGES, type ModelCatalogItem, type ModelOption } from "@/types/summarizer";
+import { LANGUAGES, type ModelCatalogItem } from "@/types/summarizer";
 
 // Re-export LANGUAGES from types (single source of truth)
 export { LANGUAGES };
@@ -22,8 +22,3 @@ export const MODEL_CATALOG: ModelCatalogItem[] = [
     envKey: "FIREWORKS_API_KEY",
   },
 ];
-
-export const MODEL_OPTIONS: ModelOption[] = MODEL_CATALOG.map(({ value, label }) => ({
-  value,
-  label,
-}));

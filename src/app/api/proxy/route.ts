@@ -42,8 +42,6 @@ function jsonError(message: string, status: number) {
   return NextResponse.json({ error: message }, { status });
 }
 
- 
-
 async function resolvePublicAddress(hostname: string) {
   if (isIP(hostname)) {
     if (isPrivateIp(hostname)) {
@@ -157,8 +155,6 @@ export async function GET(req: NextRequest) {
   }
 
   const validUrl = validation.normalizedUrl!;
-  const host = new URL(validUrl).hostname;
-  const startedAt = Date.now();
 
   try {
     const response = await fetchHtmlWithRedirects(validUrl);
@@ -183,12 +179,6 @@ export async function GET(req: NextRequest) {
       return jsonError("Could not extract sufficient content from the webpage.", 422);
     }
 
-    console.info("[proxy] fetched", {
-      host,
-      durationMs: Date.now() - startedAt,
-      chars: text.length,
-    });
-
     return NextResponse.json({ text }, { status: 200 });
   } catch (error) {
     let errorMessage = "Failed to fetch the content.";
@@ -211,12 +201,6 @@ export async function GET(req: NextRequest) {
       errorMessage = error.message;
       statusCode = error.message.includes("not allowed") ? 403 : 400;
     }
-
-    console.warn("[proxy] failed", {
-      host,
-      durationMs: Date.now() - startedAt,
-      error: errorMessage,
-    });
 
     return jsonError(errorMessage, statusCode);
   }

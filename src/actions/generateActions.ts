@@ -7,7 +7,7 @@ import { google } from "@ai-sdk/google";
 import { mistral } from "@ai-sdk/mistral";
 import { anthropic } from "@ai-sdk/anthropic";
 import { z } from "zod";
-import { LanguageSchema } from "@/types/summarizer";
+import { LanguageSchema, type Language } from "@/types/summarizer";
 import { VALIDATION } from "@/constants/app";
 import { assertModelAvailable } from "@/lib/model-availability";
 
@@ -90,14 +90,13 @@ async function generateResponse(
     const stream = createStreamableValue(result.textStream);
     return stream.value;
   } catch (error) {
-    console.error("Error in generateResponse:", error);
     throw error;
   }
 }
 
 export async function generateSummary(
   document: string,
-  language: string,
+  language: Language,
   modelName: string,
   numWords: number
 ) {
@@ -109,18 +108,11 @@ export async function generateSummary(
   });
 
   if (!validationResult.success) {
-    console.error("Validation error:", validationResult.error);
     const message =
       validationResult.error.issues[0]?.message ??
       "Invalid input parameters for summary generation.";
     throw new Error(message);
   }
-
-  console.info("[summary] start", {
-    modelName,
-    numWords,
-    chars: document.length,
-  });
 
   const systemPrompt = `You are a summarization assistant. Generate a summary of the document below.
 
