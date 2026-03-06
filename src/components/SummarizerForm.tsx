@@ -22,21 +22,20 @@ type SummarizerFormProps = {
 };
 
 export function SummarizerForm({ onSubmit, modelOptions }: SummarizerFormProps) {
-  const {
-    url,
-    setUrl,
-    language,
-    setLanguage,
-    modelName,
-    setModelName,
-    numWords,
-    setNumWords,
-    isPending,
-  } = useSummarizerStore();
+  const url = useSummarizerStore((state) => state.url);
+  const setUrl = useSummarizerStore((state) => state.setUrl);
+  const language = useSummarizerStore((state) => state.language);
+  const setLanguage = useSummarizerStore((state) => state.setLanguage);
+  const modelName = useSummarizerStore((state) => state.modelName);
+  const setModelName = useSummarizerStore((state) => state.setModelName);
+  const numWords = useSummarizerStore((state) => state.numWords);
+  const setNumWords = useSummarizerStore((state) => state.setNumWords);
+  const isPending = useSummarizerStore((state) => state.isPending);
 
   const [urlError, setUrlError] = useState<string>("");
-  const [wordsInput, setWordsInput] = useState<string>(String(numWords));
+  const [wordsInput, setWordsInput] = useState<string | null>(null);
   const hasModels = modelOptions.length > 0;
+  const wordsInputValue = wordsInput ?? String(numWords);
 
   const handleWordsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -62,14 +61,14 @@ export function SummarizerForm({ onSubmit, modelOptions }: SummarizerFormProps) 
 
   const handleWordsBlur = () => {
     // On blur, ensure we have a valid value
-    const num = parseInt(wordsInput, 10);
+    const num = parseInt(wordsInputValue, 10);
     const nextNumWords = clampNumber(
       Number.isFinite(num) ? num : VALIDATION.MIN_WORDS,
       VALIDATION.MIN_WORDS,
       VALIDATION.MAX_WORDS
     );
-    setWordsInput(String(nextNumWords));
     setNumWords(nextNumWords);
+    setWordsInput(null);
   };
 
   const validateUrl = (value: string) => {
@@ -171,7 +170,7 @@ export function SummarizerForm({ onSubmit, modelOptions }: SummarizerFormProps) 
           id="words-input"
           type="text"
           inputMode="numeric"
-          value={wordsInput}
+          value={wordsInputValue}
           onChange={handleWordsChange}
           onBlur={handleWordsBlur}
           placeholder="Enter number of words"

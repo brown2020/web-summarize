@@ -14,7 +14,19 @@ describe("isPrivateIp", () => {
     expect(isPrivateIp("::1")).toBe(true);
   });
 
+  it("detects special-use and documentation ranges", () => {
+    expect(isPrivateIp("198.19.0.1")).toBe(true);
+    expect(isPrivateIp("203.0.113.10")).toBe(true);
+    expect(isPrivateIp("2001:db8::1")).toBe(true);
+  });
+
+  it("detects IPv4-mapped IPv6 loopback and private addresses", () => {
+    expect(isPrivateIp("::ffff:127.0.0.1")).toBe(true);
+    expect(isPrivateIp("::ffff:10.0.0.8")).toBe(true);
+  });
+
   it("allows public IPs", () => {
     expect(isPrivateIp("8.8.8.8")).toBe(false);
+    expect(isPrivateIp("2606:4700:4700::1111")).toBe(false);
   });
 });

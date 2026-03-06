@@ -8,7 +8,7 @@ import { mistral } from "@ai-sdk/mistral";
 import { anthropic } from "@ai-sdk/anthropic";
 import { z } from "zod";
 import { LanguageSchema, type Language } from "@/types/summarizer";
-import { VALIDATION } from "@/constants/app";
+import { TIMEOUTS, VALIDATION } from "@/constants/app";
 import { assertModelAvailable } from "@/lib/model-availability";
 
 // Fireworks provider (OpenAI-compatible) for Llama
@@ -67,29 +67,37 @@ async function generateResponse(
   userPrompt: string,
   modelName: string
 ) {
+  const model = getModel(modelName);
+
+  const messages: ModelMessage[] = [
+    {
+      role: "system",
+      content: systemPrompt,
+    },
+    {
+      role: "user",
+      content: userPrompt,
+    },
+  ];
+
   try {
-    const model = getModel(modelName);
-
-    const messages: ModelMessage[] = [
-      {
-        role: "system",
-        content: systemPrompt,
-      },
-      {
-        role: "user",
-        content: userPrompt,
-      },
-    ];
-
     const result = streamText({
       model,
       messages,
       temperature: 0.7,
+      abortSignal: AbortSignal.timeout(TIMEOUTS.AI_GENERATION),
     });
 
     const stream = createStreamableValue(result.textStream);
     return stream.value;
   } catch (error) {
+    if (
+      error instanceof Error &&
+      (error.name === "AbortError" || error.name === "TimeoutError")
+    ) {
+      throw new Error("AI generation timed out. Please try again.");
+    }
+
     throw error;
   }
 }
