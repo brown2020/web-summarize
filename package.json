@@ -11,16 +11,16 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^3.0.66",
-    "@ai-sdk/google": "^3.0.58",
-    "@ai-sdk/mistral": "^3.0.28",
-    "@ai-sdk/openai": "^3.0.50",
-    "@ai-sdk/rsc": "^2.0.146",
+    "@ai-sdk/anthropic": "^3.0.67",
+    "@ai-sdk/google": "^3.0.59",
+    "@ai-sdk/mistral": "^3.0.29",
+    "@ai-sdk/openai": "^3.0.51",
+    "@ai-sdk/rsc": "^2.0.149",
     "@radix-ui/react-label": "^2.1.8",
     "@radix-ui/react-progress": "^1.1.8",
     "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-slot": "^1.2.4",
-    "ai": "^6.0.146",
+    "ai": "^6.0.149",
     "axios": "^1.14.0",
     "cheerio": "^1.2.0",
     "class-variance-authority": "^0.7.1",
@@ -45,6 +45,6 @@
     "postcss": "^8.5.8",
     "tailwindcss": "^4.2.2",
     "typescript": "^6",
-    "vitest": "^4.1.2"
+    "vitest": "^4.1.3"
   }
 }
