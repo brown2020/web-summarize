@@ -12,7 +12,6 @@ interface SummarizerActions {
   setIsPending: (isPending: boolean) => void;
   setProgress: (progress: number) => void;
   setError: (error: string | null) => void;
-  reset: () => void;
 }
 
 type SummarizerStore = SummarizerState & SummarizerActions;
@@ -40,5 +39,4 @@ export const useSummarizerStore = create<SummarizerStore>((set) => ({
   setIsPending: (isPending) => set({ isPending }),
   setProgress: (progress) => set({ progress }),
   setError: (error) => set({ error }),
-  reset: () => set(initialState),
 }));

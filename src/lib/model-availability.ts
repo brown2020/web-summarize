@@ -10,7 +10,7 @@ export function getAvailableModels(): ModelOption[] {
   );
 }
 
-export function getModelCatalogItem(modelName: string): ModelCatalogItem | null {
+function getModelCatalogItem(modelName: string): ModelCatalogItem | null {
   return MODEL_CATALOG.find((model) => model.value === modelName) ?? null;
 }
 
