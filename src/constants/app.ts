@@ -27,9 +27,3 @@ export const VALIDATION = {
   MAX_DOCUMENT_CHARS: 50_000,
   MAX_REDIRECTS: 5,
 } as const;
-
-// UI constants
-export const UI = {
-  TOAST_DURATION: 4000,
-  PROGRESS_ANIMATION_DURATION: 300,
-} as const;

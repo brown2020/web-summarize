@@ -15,6 +15,10 @@ describe("model availability", () => {
     process.env = {
       ...ORIGINAL_ENV,
       OPENAI_API_KEY: "test-key",
+      ANTHROPIC_API_KEY: "",
+      GOOGLE_GENERATIVE_AI_API_KEY: "",
+      MISTRAL_API_KEY: "",
+      FIREWORKS_API_KEY: "",
     };
 
     const models = getAvailableModels();
@@ -24,7 +28,10 @@ describe("model availability", () => {
   });
 
   it("throws when model is not configured", () => {
-    process.env = { ...ORIGINAL_ENV };
+    process.env = {
+      ...ORIGINAL_ENV,
+      ANTHROPIC_API_KEY: "",
+    };
 
     expect(() => assertModelAvailable("claude-sonnet-4.5")).toThrow(
       "Selected model is not configured."
