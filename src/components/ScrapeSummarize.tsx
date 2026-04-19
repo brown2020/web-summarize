@@ -116,11 +116,12 @@ function SummaryCard({
   const language = useSummarizerStore((state) => state.language);
   const modelName = useSummarizerStore((state) => state.modelName);
   const numWords = useSummarizerStore((state) => state.numWords);
-  const [editedText, setEditedText] = useState("");
-
-  useEffect(() => {
+  const [editedText, setEditedText] = useState(extractedText);
+  const [prevExtractedText, setPrevExtractedText] = useState(extractedText);
+  if (prevExtractedText !== extractedText) {
+    setPrevExtractedText(extractedText);
     setEditedText(extractedText);
-  }, [extractedText]);
+  }
 
   const canEditExtractedText = Boolean(extractedText);
 
