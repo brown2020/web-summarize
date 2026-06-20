@@ -11,23 +11,24 @@
 
 ## Current State
 
-- Phase: Execute Fixes and Improvements
-- Task: T-004A
+- Phase: Package and Dead-Code Cleanup
+- Task: T-004B
 - Status: In Progress
-- Last command: `rg` source/export searches and `npm ls` dependency tree diagnostics
-- Last result: Findings backlog created with P1 stale-run lifecycle task and P1 package security cleanup task
-- Last pushed commit: `09066b7a08d32fa1fd88947ee0960a03e5cdc2fc`
-- Branch sync: local `dev` matches `origin/dev` at `09066b7a08d32fa1fd88947ee0960a03e5cdc2fc`
-- Working tree: dirty only with in-scope findings report and queue updates
-- Next action: Commit/push Findings Backlog report, then fix F-001 stale-run lifecycle
+- Last command: `npm run build`
+- Last result: Passed after F-001 stale-run lifecycle fix
+- Last pushed commit: `0311111ce34cf6f10a25f5f8e7f2f7f58ff8e615`
+- Branch sync: local `dev` matches `origin/dev` at `0311111ce34cf6f10a25f5f8e7f2f7f58ff8e615`
+- Working tree: dirty with in-scope F-001 hook fix and execution report updates
+- Next action: Commit/push F-001 fix, then run package cleanup for F-002
 
 ## Dirty File Classification
 
 | Path | Classification | Owner/Reason |
 | --- | --- | --- |
-| `agent-runs/2026-06-20-codebase-pass/03-findings-backlog.md` | Safe-to-commit | Records evidence-backed findings |
-| `agent-runs/2026-06-20-codebase-pass/run-state.md` | Safe-to-commit | Advances run state to Execute Fixes and Improvements |
-| `agent-runs/2026-06-20-codebase-pass/task-queue.md` | Safe-to-commit | Adds prioritized executable tasks |
+| `src/hooks/useSummarizer.ts` | In-scope source | F-001 stale-run lifecycle fix |
+| `agent-runs/2026-06-20-codebase-pass/04-execute-fixes-and-improvements.md` | Safe-to-commit | Records F-001 fix and verification |
+| `agent-runs/2026-06-20-codebase-pass/run-state.md` | Safe-to-commit | Advances run state to package cleanup |
+| `agent-runs/2026-06-20-codebase-pass/task-queue.md` | Safe-to-commit | Marks T-004A done and T-004B active |
 
 ## Blockers
 

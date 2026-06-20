@@ -23,8 +23,23 @@ export function useSummarizer() {
   const abortRef = useRef<AbortController | null>(null);
   const runIdRef = useRef(0);
 
+  const isCurrentRun = useCallback(
+    (runId: number, controller: AbortController) =>
+      runId === runIdRef.current && !controller.signal.aborted,
+    []
+  );
+
+  const startRun = useCallback(() => {
+    abortRef.current?.abort();
+    const runId = ++runIdRef.current;
+    const controller = new AbortController();
+    abortRef.current = controller;
+    return { runId, controller };
+  }, []);
+
   const cancel = useCallback(() => {
     abortRef.current?.abort();
+    runIdRef.current += 1;
     abortRef.current = null;
     setIsPending(false);
     setProgress(PROGRESS_STEPS.INITIAL);
@@ -82,11 +97,15 @@ export function useSummarizer() {
           numWords
         );
 
+        if (!isCurrentRun(runId, controller)) {
+          return;
+        }
+
         let accumulatedContent = "";
         const expectedChars = numWords * 5; // ~5 chars per word heuristic
 
         for await (const content of readStreamableValue(result)) {
-          if (controller.signal.aborted || runId !== runIdRef.current) break;
+          if (!isCurrentRun(runId, controller)) break;
           if (content) {
             accumulatedContent = content.trim();
             setSummary(accumulatedContent);
@@ -106,6 +125,10 @@ export function useSummarizer() {
         setProgress(PROGRESS_STEPS.COMPLETE);
         toast.success("Summary generated successfully");
       } catch (err) {
+        if (!isCurrentRun(runId, controller)) {
+          return;
+        }
+
         const message = getErrorMessage(err, "Failed to generate summary");
         if (message === "Request cancelled.") {
           return;
@@ -116,13 +139,11 @@ export function useSummarizer() {
         setProgress(PROGRESS_STEPS.INITIAL);
       }
     },
-    [normalizeDocument, setError, setProgress, setSummary]
+    [isCurrentRun, normalizeDocument, setError, setProgress, setSummary]
   );
 
   const summarizeText = useCallback(async (document: string) => {
-    const runId = ++runIdRef.current;
-    const controller = new AbortController();
-    abortRef.current = controller;
+    const { runId, controller } = startRun();
     const { language, modelName, numWords } = useSummarizerStore.getState();
 
     const normalizedDocument = normalizeDocument(document);
@@ -143,8 +164,10 @@ export function useSummarizer() {
         numWords
       );
     } finally {
-      setIsPending(false);
-      abortRef.current = null;
+      if (runId === runIdRef.current) {
+        setIsPending(false);
+        abortRef.current = null;
+      }
     }
   }, [
     normalizeDocument,
@@ -153,13 +176,12 @@ export function useSummarizer() {
     setIsPending,
     setProgress,
     setSummary,
+    startRun,
     streamSummary,
   ]);
 
   const scrapeAndSummarize = useCallback(async () => {
-    const runId = ++runIdRef.current;
-    const controller = new AbortController();
-    abortRef.current = controller;
+    const { runId, controller } = startRun();
     const { url, language, modelName, numWords } = useSummarizerStore.getState();
 
     setIsPending(true);
@@ -192,6 +214,10 @@ export function useSummarizer() {
         numWords
       );
     } catch (err) {
+      if (!isCurrentRun(runId, controller)) {
+        return;
+      }
+
       const message = getErrorMessage(err, "Failed to generate summary");
       if (message === "Request cancelled.") {
         return;
@@ -201,17 +227,21 @@ export function useSummarizer() {
       }
       setProgress(PROGRESS_STEPS.INITIAL);
     } finally {
-      setIsPending(false);
-      abortRef.current = null;
+      if (runId === runIdRef.current) {
+        setIsPending(false);
+        abortRef.current = null;
+      }
     }
   }, [
     fetchExtractedText,
+    isCurrentRun,
     normalizeDocument,
     setError,
     setExtractedText,
     setIsPending,
     setProgress,
     setSummary,
+    startRun,
     streamSummary,
   ]);
 
