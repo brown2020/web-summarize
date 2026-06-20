@@ -11,24 +11,25 @@
 
 ## Current State
 
-- Phase: Package and Dead-Code Cleanup
-- Task: T-004B
+- Phase: Review
+- Task: T-006
 - Status: In Progress
 - Last command: `npm run build`
-- Last result: Passed after F-001 stale-run lifecycle fix
+- Last result: Passed after safe package cleanup and Axios content-type header normalization
 - Last pushed commit: `0311111ce34cf6f10a25f5f8e7f2f7f58ff8e615`
-- Branch sync: local `dev` matches `origin/dev` at `0311111ce34cf6f10a25f5f8e7f2f7f58ff8e615`
-- Working tree: dirty with in-scope F-001 hook fix and execution report updates
-- Next action: Commit/push F-001 fix, then run package cleanup for F-002
+- Branch sync: local `dev` matches `origin/dev` at `b0923f5b878a472aa697d3952f7e194eee93ba62`
+- Working tree: dirty with in-scope package cleanup, proxy type fix, and cleanup report updates
+- Next action: Commit/push package cleanup, then run Review/Judge Loop
 
 ## Dirty File Classification
 
 | Path | Classification | Owner/Reason |
 | --- | --- | --- |
-| `src/hooks/useSummarizer.ts` | In-scope source | F-001 stale-run lifecycle fix |
-| `agent-runs/2026-06-20-codebase-pass/04-execute-fixes-and-improvements.md` | Safe-to-commit | Records F-001 fix and verification |
-| `agent-runs/2026-06-20-codebase-pass/run-state.md` | Safe-to-commit | Advances run state to package cleanup |
-| `agent-runs/2026-06-20-codebase-pass/task-queue.md` | Safe-to-commit | Marks T-004A done and T-004B active |
+| `package-lock.json` | In-scope package cleanup | Non-force audit remediation for F-002 |
+| `src/app/api/proxy/route.ts` | In-scope source | Axios header type compatibility fix required by package cleanup |
+| `agent-runs/2026-06-20-codebase-pass/05-package-and-dead-code-cleanup.md` | Safe-to-commit | Records package cleanup and residual audit state |
+| `agent-runs/2026-06-20-codebase-pass/run-state.md` | Safe-to-commit | Advances run state to Review |
+| `agent-runs/2026-06-20-codebase-pass/task-queue.md` | Safe-to-commit | Marks T-004B done and review active |
 
 ## Blockers
 
@@ -37,5 +38,5 @@
 ## Deferred Items
 
 - Product roadmap decisions from README remain unapproved and out of scope for `$sb-cbi`.
-- `npm audit --audit-level=moderate` reported 8 audit findings (1 low, 2 moderate, 5 high); exact remediation deferred to Package Cleanup after findings prioritization.
+- Residual `npm audit --audit-level=moderate` finding: 2 moderate Next/PostCSS advisories remain because `npm audit fix --force` proposes a breaking Next downgrade.
 - Explicit workflow guidance for missing `origin/dev` is recorded as a skill-improvement proposal.
