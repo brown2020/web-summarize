@@ -11,23 +11,23 @@
 
 ## Current State
 
-- Phase: Preflight and Repo Docs
-- Task: T-001
+- Phase: Baseline Validation
+- Task: T-002
 - Status: In Progress
-- Last command: `git diff --check`
-- Last result: Passed after `npm ci` refreshed stale local dependencies and `npm run lint` passed
-- Last pushed commit: `0a92b244886440c35dc883f6829eb9ffef97345d`
-- Branch sync: local `dev` matches `origin/dev` at `0a92b244886440c35dc883f6829eb9ffef97345d`
-- Working tree: dirty only with in-scope run reports and repo docs from T-001
-- Next action: Inspect diff, stage in-scope T-001 files, commit/push Preflight and Repo Docs phase
+- Last command: `git status --short --branch`
+- Last result: Clean local `dev` matched `origin/dev` after preflight push
+- Last pushed commit: `cc8df04739e27bfd0117955c4b1954ace33d8985`
+- Branch sync: local `dev` matches `origin/dev` at `cc8df04739e27bfd0117955c4b1954ace33d8985`
+- Working tree: dirty only with in-scope run ledger updates for the preflight checkpoint
+- Next action: Commit/push checkpoint ledger update, then run Baseline Validation commands
 
 ## Dirty File Classification
 
 | Path | Classification | Owner/Reason |
 | --- | --- | --- |
-| `agent-runs/2026-06-20-codebase-pass/` | Safe-to-commit | T-001 run reports created by codebase-improvement workflow |
-| `AGENTS.md` | Safe-to-commit | T-001 repo guidance created because no `AGENTS.md`/`agents.md` existed |
-| `SPEC.md` | Safe-to-commit | T-001 current-state spec created because no `SPEC.md`/`spec.md` existed |
+| `agent-runs/2026-06-20-codebase-pass/run-state.md` | Safe-to-commit | Records completed preflight checkpoint and next baseline task |
+| `agent-runs/2026-06-20-codebase-pass/task-queue.md` | Safe-to-commit | Marks T-001 done and T-002 active |
+| `agent-runs/2026-06-20-codebase-pass/01-preflight-and-repo-docs.md` | Safe-to-commit | Records completed commit-push checkpoint |
 
 ## Blockers
 

@@ -28,8 +28,8 @@ Preflight and Repo Docs inspected Git state, remote access, package scripts, exi
 - Branch: `dev`
 - Upstream: `origin/dev`
 - Commit before phase: `0a92b244886440c35dc883f6829eb9ffef97345d`
-- Pushed to: pending phase checkpoint
-- Sync status: local `dev` matches `origin/dev`
+- Pushed to: `origin/dev`
+- Sync status: local `dev` matches `origin/dev` at `cc8df04739e27bfd0117955c4b1954ace33d8985`
 
 ## Loop
 
@@ -38,14 +38,14 @@ Preflight and Repo Docs inspected Git state, remote access, package scripts, exi
 - Verify gate: scaffold validates, docs are evidence-backed, lint or closest quality gate passes, phase is committed and pushed
 - Stop condition: plan/state/queue/docs/report are pushed or a real blocker is recorded
 - Attempt: 1/1 planning, 1/2 docs
-- Result: In progress pending quality gate and commit-push checkpoint
+- Result: Done
 
 ## Run State
 
-- Current phase: Preflight and Repo Docs
-- Current task: T-001
-- Last pushed commit: `0a92b244886440c35dc883f6829eb9ffef97345d`
-- Next action: run quality gate, inspect diff, commit/push this phase
+- Current phase: Baseline Validation
+- Current task: T-002
+- Last pushed commit: `cc8df04739e27bfd0117955c4b1954ace33d8985`
+- Next action: run baseline validation commands
 - Blockers: none
 
 ## Commands Run
@@ -94,7 +94,9 @@ git diff --check
 
 - `npm run lint`: first attempt failed due stale local install missing `@eslint/compat`; after `npm ci`, rerun passed.
 - `git diff --check`: passed.
-- `git push --dry-run origin dev`: pending commit-push checkpoint.
+- `git push --dry-run origin dev`: passed before push.
+- `git push origin dev`: passed.
+- Post-push `git fetch origin`, `git status --short --branch`, and `git rev-parse HEAD`/`origin/dev`: local and remote matched at `cc8df04739e27bfd0117955c4b1954ace33d8985`.
 
 ## Architecture and Lean Code Scorecard
 
@@ -119,10 +121,10 @@ git diff --check
 
 - Status inspected: `git status --short --branch` showed only in-scope T-001 files after run scaffold/docs
 - Diff checked: `git diff --check` passed
-- Files staged: pending
-- Dry-run push: pending
-- Push: pending
-- Post-push sync: pending
+- Files staged: `AGENTS.md`, `SPEC.md`, `agent-runs/2026-06-20-codebase-pass/`
+- Dry-run push: passed
+- Push: passed to `origin/dev`
+- Post-push sync: confirmed local `dev` matches `origin/dev` at `cc8df04739e27bfd0117955c4b1954ace33d8985`
 
 ## Stabilization
 
