@@ -11,23 +11,23 @@
 
 ## Current State
 
-- Phase: Findings Backlog
-- Task: T-003
+- Phase: Execute Fixes and Improvements
+- Task: T-004A
 - Status: In Progress
-- Last command: `npm audit --audit-level=moderate`
-- Last result: Non-zero with 8 audit findings; lint, tests, and build passed
-- Last pushed commit: `8842c0c7c557f7adcde423fe9d7f14b4284e8657`
-- Branch sync: local `dev` matches `origin/dev` at `8842c0c7c557f7adcde423fe9d7f14b4284e8657`
-- Working tree: dirty only with in-scope baseline report updates
-- Next action: Commit/push Baseline Validation report, then run Findings Backlog
+- Last command: `rg` source/export searches and `npm ls` dependency tree diagnostics
+- Last result: Findings backlog created with P1 stale-run lifecycle task and P1 package security cleanup task
+- Last pushed commit: `09066b7a08d32fa1fd88947ee0960a03e5cdc2fc`
+- Branch sync: local `dev` matches `origin/dev` at `09066b7a08d32fa1fd88947ee0960a03e5cdc2fc`
+- Working tree: dirty only with in-scope findings report and queue updates
+- Next action: Commit/push Findings Backlog report, then fix F-001 stale-run lifecycle
 
 ## Dirty File Classification
 
 | Path | Classification | Owner/Reason |
 | --- | --- | --- |
-| `agent-runs/2026-06-20-codebase-pass/02-baseline-validation.md` | Safe-to-commit | Records baseline validation results |
-| `agent-runs/2026-06-20-codebase-pass/run-state.md` | Safe-to-commit | Advances run state to Findings Backlog |
-| `agent-runs/2026-06-20-codebase-pass/task-queue.md` | Safe-to-commit | Marks baseline done and findings active |
+| `agent-runs/2026-06-20-codebase-pass/03-findings-backlog.md` | Safe-to-commit | Records evidence-backed findings |
+| `agent-runs/2026-06-20-codebase-pass/run-state.md` | Safe-to-commit | Advances run state to Execute Fixes and Improvements |
+| `agent-runs/2026-06-20-codebase-pass/task-queue.md` | Safe-to-commit | Adds prioritized executable tasks |
 
 ## Blockers
 
