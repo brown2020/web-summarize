@@ -301,26 +301,28 @@ export default function ScrapeSummarize({ modelOptions }: ScrapeSummarizeProps) 
   }, [setLanguage, setModelName, setNumWords, setUrl]);
 
   return (
-    <div className="container max-w-4xl mx-auto py-10 px-4 space-y-8">
+    <main className="container max-w-4xl mx-auto py-10 px-4 space-y-8">
       <Toaster position="top-center" />
 
-      <div className="text-center space-y-2">
+      <header className="text-center space-y-2">
         <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl">
           Web Summarizer
         </h1>
         <p className="text-muted-foreground">
           Enter a URL to generate a concise AI summary using advanced LLMs.
         </p>
-      </div>
+      </header>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Configuration</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <SummarizerForm onSubmit={scrapeAndSummarize} modelOptions={modelOptions} />
-        </CardContent>
-      </Card>
+      <section aria-labelledby="config-heading">
+        <Card>
+          <CardHeader>
+            <CardTitle id="config-heading">Configuration</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <SummarizerForm onSubmit={scrapeAndSummarize} modelOptions={modelOptions} />
+          </CardContent>
+        </Card>
+      </section>
 
       <ProgressCard onCancel={cancel} />
       <ErrorCard onRetry={scrapeAndSummarize} />
@@ -328,6 +330,6 @@ export default function ScrapeSummarize({ modelOptions }: ScrapeSummarizeProps) 
         onRegenerate={scrapeAndSummarize}
         onSummarizeText={summarizeText}
       />
-    </div>
+    </main>
   );
 }
