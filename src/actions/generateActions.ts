@@ -10,14 +10,19 @@ import { z } from "zod";
 import { LanguageSchema, type Language } from "@/types/summarizer";
 import { TIMEOUTS, VALIDATION } from "@/constants/app";
 import { assertModelAvailable } from "@/lib/model-availability";
+import {
+  FIXTURE_SUMMARY,
+  summarizeFixturesEnabled,
+} from "@/lib/summarize-fixtures";
 
-// Fireworks provider (OpenAI-compatible) for Llama
-// Model IDs from: https://ai-sdk.dev/providers/ai-sdk-providers/fireworks
-const fireworks = createOpenAI({
-  name: "fireworks",
-  baseURL: "https://api.fireworks.ai/inference/v1",
-  apiKey: process.env.FIREWORKS_API_KEY ?? "",
-});
+/** Deferred Fireworks client — avoid module-scope init with empty secrets. */
+function getFireworks() {
+  return createOpenAI({
+    name: "fireworks",
+    baseURL: "https://api.fireworks.ai/inference/v1",
+    apiKey: process.env.FIREWORKS_API_KEY ?? "",
+  });
+}
 
 // Input validation schema using centralized constants
 const GenerateSummarySchema = z.object({
@@ -37,25 +42,20 @@ function getModel(modelName: string) {
   assertModelAvailable(modelName);
 
   switch (modelName) {
-    // OpenAI
     case "gpt-4.1":
       return openai("gpt-4.1");
 
-    // Anthropic - https://ai-sdk.dev/providers/ai-sdk-providers/anthropic
     case "claude-sonnet-4.5":
       return anthropic("claude-sonnet-4-5");
 
-    // Google - https://ai-sdk.dev/providers/ai-sdk-providers/google-generative-ai
     case "gemini-2.5-flash":
       return google("gemini-2.5-flash");
 
-    // Mistral
     case "mistral-large":
       return mistral("mistral-large-latest");
 
-    // Llama via Fireworks - https://ai-sdk.dev/providers/ai-sdk-providers/fireworks
     case "llama-v3p3-70b":
-      return fireworks("accounts/fireworks/models/llama-v3p3-70b-instruct");
+      return getFireworks()("accounts/fireworks/models/llama-v3p3-70b-instruct");
 
     default:
       throw new Error("Unsupported model selected.");
@@ -67,6 +67,12 @@ async function generateResponse(
   userPrompt: string,
   modelName: string
 ) {
+  if (summarizeFixturesEnabled()) {
+    const stream = createStreamableValue(FIXTURE_SUMMARY);
+    stream.done();
+    return stream.value;
+  }
+
   const model = getModel(modelName);
 
   const messages: ModelMessage[] = [
@@ -121,6 +127,9 @@ export async function generateSummary(
       "Invalid input parameters for summary generation.";
     throw new Error(message);
   }
+
+  // Still enforce model catalog membership (fixtures skip live keys).
+  assertModelAvailable(modelName);
 
   const systemPrompt = `You are a summarization assistant. Generate a summary of the document below.
 

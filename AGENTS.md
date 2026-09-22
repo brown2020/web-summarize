@@ -5,8 +5,8 @@
 Web Summarize is a Next.js 16 App Router application for scraping public HTML pages and generating AI summaries with Vercel AI SDK providers. The main user flow is:
 
 1. `src/components/SummarizerForm.tsx` collects URL, language, model, and word count.
-2. `src/hooks/useSummarizer.ts` fetches extracted text from `/api/proxy`, manages progress, cancellation, stale-run prevention, and summary streaming.
-3. `src/app/api/proxy/route.ts` validates and fetches HTML server-side, applies DNS pinning and private-network blocking, then extracts readable text with Cheerio.
+2. `src/hooks/useSummarizer.ts` POSTs the URL to `/api/proxy`, manages progress, cancellation, stale-run prevention, and summary streaming.
+3. `src/app/api/proxy/route.ts` validates and fetches HTML server-side (POST only; GET 405), applies DNS pinning and private-network blocking, then extracts readable text with Cheerio. When `SUMMARIZE_USE_FIXTURES=true`, returns labeled fixture text (no live HTTP).
 4. `src/actions/generateActions.ts` validates summary inputs, checks provider availability, and streams model output.
 5. `src/store/summarizerStore.ts` holds form, progress, extracted text, summary, pending, and error state.
 
@@ -14,6 +14,7 @@ Web Summarize is a Next.js 16 App Router application for scraping public HTML pa
 
 - `npm run dev`: start the local Next.js dev server with Turbopack.
 - `npm run lint`: run ESLint across the repo.
+- `npm run typecheck`: run `tsc --noEmit`.
 - `npm test`: run Vitest once.
 - `npm run test:watch`: run Vitest in watch mode.
 - `npm run build`: build the production Next.js app.

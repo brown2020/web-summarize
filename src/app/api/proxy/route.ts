@@ -7,6 +7,10 @@ import { isIP } from "node:net";
 import { isPrivateIp } from "@/utils/network";
 import { validateAndNormalizeUrl } from "@/utils/url-validation";
 import { TIMEOUTS, VALIDATION } from "@/constants/app";
+import {
+  FIXTURE_EXTRACTED_TEXT,
+  summarizeFixturesEnabled,
+} from "@/lib/summarize-fixtures";
 
 export const dynamic = "force-dynamic";
 
@@ -141,9 +145,23 @@ function extractText(html: string): string {
   return normalize($("body").text());
 }
 
-export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const url = searchParams.get("url");
+export async function GET() {
+  return NextResponse.json(
+    { error: "Method not allowed. Use POST with a JSON body { url }." },
+    { status: 405, headers: { Allow: "POST" } }
+  );
+}
+
+export async function POST(req: NextRequest) {
+  let url: string | null = null;
+  try {
+    const body = (await req.json()) as { url?: unknown };
+    if (typeof body?.url === "string") {
+      url = body.url;
+    }
+  } catch {
+    return jsonError("Request body must be JSON with a url string.", 400);
+  }
 
   if (!url) {
     return jsonError("URL parameter is required.", 400);
@@ -155,6 +173,13 @@ export async function GET(req: NextRequest) {
   }
 
   const validUrl = validation.normalizedUrl!;
+
+  if (summarizeFixturesEnabled()) {
+    return NextResponse.json(
+      { text: FIXTURE_EXTRACTED_TEXT, fixture: true },
+      { status: 200 }
+    );
+  }
 
   try {
     const response = await fetchHtmlWithRedirects(validUrl);

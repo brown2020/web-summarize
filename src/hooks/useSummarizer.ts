@@ -56,16 +56,23 @@ export function useSummarizer() {
 
   const fetchExtractedText = useCallback(
     async (url: string, signal: AbortSignal) => {
-      const response = await fetch(`/api/proxy?url=${encodeURIComponent(url)}`, {
+      const response = await fetch("/api/proxy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
         signal,
       });
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as
+          | { error?: string }
+          | null;
+        throw new Error(payload?.error || "Failed to fetch webpage content.");
+      }
+
       const payload = (await response.json().catch(() => null)) as
         | { error?: string; text?: string }
         | null;
-
-      if (!response.ok) {
-        throw new Error(payload?.error || "Failed to fetch webpage content.");
-      }
 
       if (typeof payload?.text !== "string") {
         throw new Error("Failed to extract readable text from the webpage.");

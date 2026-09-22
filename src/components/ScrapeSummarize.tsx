@@ -30,8 +30,8 @@ function SummaryContent({ summary }: { summary: string }) {
 
   return (
     <div className="space-y-4">
-      {paragraphs.map((paragraph, index) => (
-        <p key={`${index}-${paragraph.slice(0, 16)}`} className="leading-7">
+      {paragraphs.map((paragraph) => (
+        <p key={paragraph} className="leading-7">
           {paragraph}
         </p>
       ))}
@@ -86,7 +86,7 @@ function ErrorCard({ onRetry }: { onRetry: () => Promise<void> }) {
   return (
     <Card className="border-destructive/50 bg-destructive/10">
       <CardContent className="space-y-3 pt-6">
-        <p className="text-destructive">{error}</p>
+        <p className="text-destructive" role="alert">{error}</p>
         <div className="flex flex-wrap gap-2">
           <Button onClick={() => void onRetry()}>Retry</Button>
           {url ? (
@@ -221,9 +221,14 @@ function SummaryCard({
                 If the webpage extraction included nav/ads or missed content,
                 tweak it here and regenerate.
               </p>
+              <label htmlFor="edited-extracted-text" className="sr-only">
+                Edited extracted text
+              </label>
               <textarea
+                id="edited-extracted-text"
                 value={editedText}
                 onChange={(event) => setEditedText(event.target.value)}
+                aria-label="Edited extracted text"
                 className="min-h-[220px] w-full rounded-md border border-input bg-background p-3 text-sm leading-5"
               />
               <div className="flex flex-wrap gap-2">
