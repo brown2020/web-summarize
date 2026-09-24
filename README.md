@@ -132,4 +132,4 @@ Deploy to Vercel or another Next.js host. Set the provider API keys you need in 
 
 ## License
 
-No `LICENSE` file is present in this repository.
+[GNU Affero General Public License v3.0](LICENSE.md) (AGPL-3.0).
