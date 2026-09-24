@@ -1,318 +1,135 @@
 # Web Summarize
 
-[![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org/)
-[![React](https://img.shields.io/badge/React-19-blue?logo=react)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript)](https://www.typescriptlang.org/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-38B2AC?logo=tailwind-css)](https://tailwindcss.com/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+Enter a public webpage URL and get a streamed AI summary in a chosen language and length. The app fetches and extracts HTML on the server (`/api/proxy`), then summarizes with the Vercel AI SDK across OpenAI, Anthropic, Google, Mistral, and Fireworks models.
 
-A modern AI-powered web page summarizer built with Next.js 16, React 19, and the Vercel AI SDK. Enter any URL and get a concise summary in your preferred language using state-of-the-art LLMs from OpenAI, Anthropic, Google, Mistral, and more.
+## Features
 
-![Web Summarize Demo](https://via.placeholder.com/800x400?text=Web+Summarize+Demo)
+- **URL scrape + extract** — server-side fetch with Cheerio; protocol normalization (`https://` if missing)
+- **SSRF-minded proxy** — URL validation, private/special-use IP blocking, DNS pin, bounded redirects, content-type and size limits
+- **Multi-model summaries** — GPT-4.1, Claude Sonnet 4.5, Gemini 2.5 Flash, Mistral Large, Llama 3.3 70B (Fireworks); UI only lists models whose env keys are set
+- **10 languages** — English, French, Spanish, German, Italian, Portuguese, Chinese, Russian, Hindi, Japanese
+- **Target length** — about 10–300 words
+- **Streaming UI** — progress for fetch → extract → AI → done; cancel, retry, regenerate
+- **Edit extracted text** — tweak the scraped body and regenerate
+- **Output actions** — copy, download Markdown, share a prefilled link (`url`, `lang`, `model`, `words`), open source
+- **Legal pages** — `/privacy`, `/terms`
+- **Fixture mode** — `SUMMARIZE_USE_FIXTURES=true` for CI without burning LLM credits
 
-## ✨ Features
+No Firebase, Stripe, or user accounts.
 
-- **🌐 Universal Web Scraping** — Fetch and extract content from any publicly accessible webpage
-- **🤖 Multi-Model Support** — Choose from 5 cutting-edge AI models: GPT-4.1, Claude Sonnet 4.5, Gemini 2.5 Flash, Mistral Large, and Llama 3.3 70B
-- **🌍 10 Languages** — Generate summaries in English, French, Spanish, German, Italian, Portuguese, Chinese, Russian, Hindi, or Japanese
-- **⚡ Real-Time Streaming** — Watch summaries generate with live progress updates
-- **📱 Responsive Design** — Beautiful UI built with Tailwind CSS v4 and Radix UI primitives
-- **🔒 Server-Side Processing** — Secure API key handling with Next.js Server Actions
-- **🧭 Polished run controls** — Cancel in-flight runs, Retry on error, and Regenerate on demand
-- **🧰 Output actions** — Copy, Download as Markdown, Share a link (prefilled settings), and open the source page
-- **🛠️ Extraction editing (advanced)** — Review/edit extracted text and regenerate the summary
+## Tech stack
 
-## 🚀 Quick Start
+| Layer | Choice |
+| --- | --- |
+| Framework | Next.js `^16.3.6` (App Router; `dev` uses Turbopack) |
+| UI | React `^19.2.5`, Tailwind CSS `^4.2.2`, Radix primitives, Lucide, react-hot-toast |
+| Language | TypeScript `^6` |
+| Scraping | axios `^1.15`, cheerio `^1.2` |
+| AI | Vercel AI SDK (`ai` `^6`, `@ai-sdk/*`, `@ai-sdk/rsc`) |
+| Validation | Zod `^4` |
+| State | Zustand `^5` |
+| Tests | Vitest `^4` |
+| Lint | ESLint `^10` + `eslint-config-next` |
+
+## Project structure
+
+```
+src/
+  app/
+    page.tsx              # Home (passes available models)
+    api/proxy/route.ts    # HTML fetch + text extraction
+    privacy/ terms/ error / not-found
+  actions/generateActions.ts   # Streaming summarization Server Action
+  components/             # ScrapeSummarize, SummarizerForm, ui/*
+  hooks/useSummarizer.ts
+  store/summarizerStore.ts
+  constants/              # languages, model catalog, limits
+  lib/                    # model availability, fixtures, utils
+  utils/                  # URL validation, private IP helpers
+  types/
+.env.example
+.github/workflows/ci.yml
+```
+
+## Getting started
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) 18.17 or later
-- [npm](https://www.npmjs.com/), [yarn](https://yarnpkg.com/), or [pnpm](https://pnpm.io/)
-- At least one AI provider API key (see [Environment Variables](#environment-variables))
+- Node.js 22+ (CI uses 22)
+- npm
+- At least one AI provider API key (unless using fixtures only)
 
-### Installation
+### Clone and install
 
-1. **Clone the repository**
-
-   ```bash
-   git clone https://github.com/brown2020/web-summarize.git
-   cd web-summarize
-   ```
-
-2. **Install dependencies**
-
-   ```bash
-   npm install
-   ```
-
-3. **Configure environment variables**
-
-   Create a `.env.local` file in the root directory:
-
-   ```bash
-   # Required: At least one AI provider
-   OPENAI_API_KEY=sk-...
-
-   # Optional: Additional AI providers
-   ANTHROPIC_API_KEY=sk-ant-...
-   GOOGLE_GENERATIVE_AI_API_KEY=...
-   MISTRAL_API_KEY=...
-   FIREWORKS_API_KEY=...
-   ```
-
-4. **Start the development server**
-
-   ```bash
-   npm run dev
-   ```
-
-5. **Open [http://localhost:3000](http://localhost:3000)** in your browser
-
-## 📖 Usage
-
-1. **Enter a URL** — Paste any webpage URL (protocol is auto-added if missing)
-2. **Select Language** — Choose your preferred output language
-3. **Choose AI Model** — Pick from available LLM providers
-4. **Set Word Count** — Specify summary length (10-300 words)
-5. **Generate** — Click "Scrape and Summarize" and watch the magic happen!
-
-### Run Controls
-
-- **Cancel**: Stop the current fetch/summarization run.
-- **Retry**: If a run fails (e.g., scraping blocked), retry with the same settings.
-- **Regenerate**: Generate a new summary for the current URL/settings.
-
-### Output Actions
-
-- **Copy**: Copies the summary to your clipboard.
-- **Download**: Downloads the summary as a `.md` file.
-- **Share link**: Creates a link that pre-fills the form with your current settings.
-- **Open source**: Opens the original URL in a new tab.
-
-### Advanced: Edit extracted text
-
-If the scraper includes nav/ads or misses content, expand **“Edit extracted text (advanced)”**, adjust the extracted text, and click **“Regenerate from edited text”**.
-
-### Shareable URL parameters
-
-The home page supports query parameters to pre-fill settings:
-
-- `url`: target URL
-- `lang`: language (e.g. `english`)
-- `model`: model id (e.g. `gpt-4.1`)
-- `words`: word count (10–300)
-
-Example:
-
-`/?url=https%3A%2F%2Fexample.com&lang=english&model=gpt-4.1&words=120`
-
-## 🏗️ Project Structure
-
-```
-web-summarize/
-├── src/
-│   ├── app/
-│   │   ├── api/
-│   │   │   └── proxy/
-│   │   │       └── route.ts       # Proxy API for fetching & extracting webpage content
-│   │   ├── globals.css            # Tailwind CSS v4 theme configuration
-│   │   ├── layout.tsx             # Root layout with metadata
-│   │   └── page.tsx               # Home page entry point
-│   ├── actions/
-│   │   └── generateActions.ts     # Server Actions for AI streaming
-│   ├── components/
-│   │   ├── ui/                    # Reusable UI components (Radix-based)
-│   │   │   ├── button.tsx
-│   │   │   ├── card.tsx
-│   │   │   ├── input.tsx
-│   │   │   ├── label.tsx
-│   │   │   ├── progress.tsx
-│   │   │   └── select.tsx
-│   │   ├── ScrapeSummarize.tsx    # Main summarizer container
-│   │   └── SummarizerForm.tsx     # Form with URL input and options
-│   ├── constants/
-│   │   ├── app.ts                 # App-wide constants (timeouts, validation)
-│   │   └── summarizer.ts          # Model options and language list
-│   ├── hooks/
-│   │   └── useSummarizer.ts       # Core summarization logic hook
-│   ├── lib/
-│   │   └── utils.ts               # Utility functions (cn, capitalize)
-│   ├── store/
-│   │   └── summarizerStore.ts     # Zustand global state management
-│   ├── types/
-│   │   └── summarizer.ts          # TypeScript types and Zod schemas
-│   └── utils/
-│       └── url-validation.ts      # URL validation and normalization
-├── .env.local                     # Environment variables (not committed)
-├── next.config.mjs                # Next.js configuration
-├── package.json                   # Dependencies and scripts
-├── postcss.config.mjs             # PostCSS configuration
-├── tailwind.config.ts             # Tailwind CSS configuration
-└── tsconfig.json                  # TypeScript configuration
+```bash
+git clone https://github.com/brown2020/web-summarize.git
+cd web-summarize
+npm install
 ```
 
-## 🔧 Environment Variables
+### Environment variables
 
-| Variable                       | Required | Description                             |
-| ------------------------------ | -------- | --------------------------------------- |
-| `OPENAI_API_KEY`               | Yes\*    | OpenAI API key for GPT-4.1              |
-| `ANTHROPIC_API_KEY`            | No       | Anthropic API key for Claude Sonnet 4.5 |
-| `GOOGLE_GENERATIVE_AI_API_KEY` | No       | Google AI API key for Gemini 2.5 Flash  |
-| `MISTRAL_API_KEY`              | No       | Mistral API key for Mistral Large       |
-| `FIREWORKS_API_KEY`            | No       | Fireworks API key for Llama 3.3 70B     |
+Copy `.env.example` to `.env.local`. **Never commit real keys.** Use placeholders only in docs and examples.
 
-\*At least one AI provider API key is required. OpenAI is the default fallback.
+| Variable | Purpose | Where to get it |
+| --- | --- | --- |
+| `OPENAI_API_KEY` | GPT-4.1 | [OpenAI API keys](https://platform.openai.com/api-keys) |
+| `ANTHROPIC_API_KEY` | Claude Sonnet 4.5 | [Anthropic Console](https://console.anthropic.com/) |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | Gemini 2.5 Flash | [Google AI Studio](https://aistudio.google.com/apikey) |
+| `MISTRAL_API_KEY` | Mistral Large | [Mistral Console](https://console.mistral.ai/) |
+| `FIREWORKS_API_KEY` | Llama 3.3 70B via Fireworks | [Fireworks](https://fireworks.ai/) |
+| `SUMMARIZE_USE_FIXTURES` | `true` to return labeled fixtures from proxy + generate (CI) | Set locally / in CI |
 
-## 🛠️ Tech Stack
+Models without a configured key are omitted from the selector (except when fixtures are enabled).
 
-### Core Framework
+### Run locally
 
-| Package                                       | Version | Purpose                                                    |
-| --------------------------------------------- | ------- | ---------------------------------------------------------- |
-| [Next.js](https://nextjs.org/)                | 16.x    | React framework with App Router, Server Actions, Turbopack |
-| [React](https://react.dev/)                   | 19.x    | UI library with latest features                            |
-| [TypeScript](https://www.typescriptlang.org/) | 5.x     | Type safety and developer experience                       |
-
-### AI & LLM Integration
-
-| Package                                                                                 | Version | Purpose                                 |
-| --------------------------------------------------------------------------------------- | ------- | --------------------------------------- |
-| [ai](https://sdk.vercel.ai/)                                                            | 5.x     | Vercel AI SDK core for streaming        |
-| [@ai-sdk/openai](https://sdk.vercel.ai/providers/ai-sdk-providers/openai)               | 2.x     | OpenAI GPT-4.1 + OpenAI-compatible APIs |
-| [@ai-sdk/anthropic](https://sdk.vercel.ai/providers/ai-sdk-providers/anthropic)         | 2.x     | Anthropic Claude Sonnet 4.5             |
-| [@ai-sdk/google](https://sdk.vercel.ai/providers/ai-sdk-providers/google-generative-ai) | 2.x     | Google Gemini 2.5 Flash                 |
-| [@ai-sdk/mistral](https://sdk.vercel.ai/providers/ai-sdk-providers/mistral)             | 2.x     | Mistral Large                           |
-| [@ai-sdk/rsc](https://sdk.vercel.ai/docs/ai-sdk-rsc)                                    | 1.x     | React Server Components streaming       |
-
-> **Note:** Llama 3.3 70B uses Fireworks via the OpenAI-compatible provider (`createOpenAI`).
-
-### UI & Styling
-
-| Package                                                      | Version | Purpose                      |
-| ------------------------------------------------------------ | ------- | ---------------------------- |
-| [Tailwind CSS](https://tailwindcss.com/)                     | 4.x     | Utility-first CSS framework  |
-| [@radix-ui/react-\*](https://www.radix-ui.com/)              | 2.x     | Accessible UI primitives     |
-| [class-variance-authority](https://cva.style/)               | 0.7.x   | Component variant management |
-| [lucide-react](https://lucide.dev/)                          | 0.5x    | Icon library                 |
-| [react-markdown](https://github.com/remarkjs/react-markdown) | 10.x    | Markdown rendering           |
-
-### State & Data
-
-| Package                                  | Version | Purpose                      |
-| ---------------------------------------- | ------- | ---------------------------- |
-| [Zustand](https://zustand-demo.pmnd.rs/) | 5.x     | Lightweight state management |
-| [Zod](https://zod.dev/)                  | 4.x     | Schema validation            |
-| [Axios](https://axios-http.com/)         | 1.x     | HTTP client                  |
-| [Cheerio](https://cheerio.js.org/)       | 1.x     | Server-side HTML parsing     |
-
-### Utilities
-
-| Package                                                     | Version | Purpose                |
-| ----------------------------------------------------------- | ------- | ---------------------- |
-| [react-hot-toast](https://react-hot-toast.com/)             | 2.x     | Toast notifications    |
-| [clsx](https://github.com/lukeed/clsx)                      | 2.x     | Conditional classNames |
-| [tailwind-merge](https://github.com/dcastil/tailwind-merge) | 3.x     | Merge Tailwind classes |
-
-## 🔄 How It Works
-
-### Architecture Flow
-
-```
-┌─────────────┐     ┌──────────────┐     ┌─────────────────┐
-│   Browser   │────▶│  /api/proxy  │────▶│  Target Website │
-│  (Client)   │◀────│   (Server)   │◀────│                 │
-└─────────────┘     └──────────────┘     └─────────────────┘
-       │                                          │
-       │            ┌──────────────┐              │
-       │            │   Cheerio    │◀─────────────┘
-       │            │  (Extract)   │   Raw HTML
-       │            └──────────────┘
-       │                   │
-       │              Plain Text
-       │                   ▼
-       │            ┌──────────────┐     ┌─────────────────┐
-       │            │   Server     │────▶│   AI Provider   │
-       └───────────▶│   Action     │◀────│  (OpenAI, etc.) │
-         Stream     └──────────────┘     └─────────────────┘
+```bash
+npm run dev
 ```
 
-### Streaming Implementation
+Open [http://localhost:3000](http://localhost:3000).
 
-The app uses the Vercel AI SDK's `createStreamableValue` for real-time token streaming:
-
-```typescript
-// Server Action (generateActions.ts)
-const result = streamText({
-  model,
-  messages,
-  temperature: 0.7,
-});
-
-const stream = createStreamableValue(result.textStream);
-return stream.value;
-
-// Client Hook (useSummarizer.ts)
-for await (const content of readStreamableValue(result)) {
-  if (content) {
-    setSummary(content.trim());
-    // Update progress based on content length
-  }
-}
+```bash
+SUMMARIZE_USE_FIXTURES=true npm test
+SUMMARIZE_USE_FIXTURES=true npm run build
 ```
 
-## 📜 Available Scripts
+## Scripts
 
-| Command         | Description                             |
-| --------------- | --------------------------------------- |
-| `npm run dev`   | Start development server with Turbopack |
-| `npm run build` | Build for production                    |
-| `npm run start` | Start production server                 |
-| `npm run lint`  | Run ESLint                              |
+| Script | Description |
+| --- | --- |
+| `npm run dev` | Next.js + Turbopack |
+| `npm run build` | Production build |
+| `npm start` | Serve production build |
+| `npm run lint` | ESLint |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm test` | Vitest |
+| `npm run test:watch` | Vitest watch mode |
 
-## 🤝 Contributing
+## Testing and CI
 
-Contributions are welcome! Here's how to get started:
+CI (`.github/workflows/ci.yml`) on `dev` / `main` and PRs:
 
-1. **Fork** the repository
-2. **Create** a feature branch: `git checkout -b feature/amazing-feature`
-3. **Commit** your changes: `git commit -m 'Add amazing feature'`
-4. **Push** to the branch: `git push origin feature/amazing-feature`
-5. **Open** a Pull Request
+1. `npm ci --ignore-scripts`
+2. `npm run lint`
+3. `npm run typecheck`
+4. `npm test` with `SUMMARIZE_USE_FIXTURES=true`
+5. `npm run build` with `SUMMARIZE_USE_FIXTURES=true`
 
-### Development Guidelines
+Coverage includes URL validation, private-network checks, model availability, fixtures, and the proxy route under fixtures.
 
-- Follow the existing code style (Prettier + ESLint)
-- Write meaningful commit messages
-- Add tests for new features when applicable
-- Update documentation as needed
+## Deployment
 
-## 📋 Roadmap
+Deploy to Vercel or another Next.js host. Set the provider API keys you need in the host environment. No GitHub `homepageUrl` is set for this repository.
 
-- [ ] Add support for PDF documents
-- [ ] Implement summary history/caching
-- [ ] Add user authentication
-- [ ] Support for Q&A mode (ask questions about content)
-- [ ] Browser extension
-- [ ] API endpoint for programmatic access
+## Contributing
 
-## 🐛 Known Issues
+1. Develop on `dev`.
+2. Treat `/api/proxy` as security-sensitive; keep SSRF tests green when changing fetch behavior.
+3. Run lint, typecheck, and tests before pushing.
+4. Do not commit `.env.local` or secrets.
 
-- Some websites with aggressive bot protection may not be scrapeable
-- Very long pages may hit token limits on some models
+## License
 
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 📧 Contact
-
-For questions, feedback, or support:
-
-- **Email**: [info@ignitechannel.com](mailto:info@ignitechannel.com)
-- **GitHub Issues**: [Create an issue](https://github.com/brown2020/web-summarize/issues)
-
----
-
-<p align="center">
-  Built with ❤️ using <a href="https://nextjs.org">Next.js</a> and the <a href="https://sdk.vercel.ai">Vercel AI SDK</a>
-</p>
+No `LICENSE` file is present in this repository.
