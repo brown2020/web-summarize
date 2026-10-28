@@ -12,7 +12,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^4.0.90",
+    "@ai-sdk/anthropic": "^4.0.91",
     "@ai-sdk/google": "^4.0.107",
     "@ai-sdk/mistral": "^4.0.74",
     "@ai-sdk/openai": "^4.0.104",
@@ -20,7 +20,7 @@
     "@radix-ui/react-progress": "^1.2.1",
     "@radix-ui/react-select": "^2.4.1",
     "@radix-ui/react-slot": "^1.5.0",
-    "ai": "^7.0.155",
+    "ai": "^7.0.156",
     "axios": "^1.21.0",
     "cheerio": "^1.2.0",
     "class-variance-authority": "^0.7.1",
@@ -35,16 +35,18 @@
     "zustand": "^5.0.16"
   },
   "devDependencies": {
-    "@eslint/compat": "^2.0.5",
-    "@tailwindcss/postcss": "^4.2.2",
-    "@types/node": "^25.6.0",
-    "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3",
-    "eslint": "^10.2.1",
+    "@eslint/compat": "^2.1.1",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@typescript/native": "npm:typescript@^7.0.2",
+    "eslint": "^10.13.0",
     "eslint-config-next": "^16.4.3",
-    "postcss": "^8.5.10",
-    "tailwindcss": "^4.2.2",
-    "typescript": "^6",
-    "vitest": "^4.1.12"
+    "postcss": "^8.5.32",
+    "tailwindcss": "^4.3.3",
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5"
   }
 }
