@@ -1,6 +1,4 @@
 import { useSummarizerStore } from "@/store/summarizerStore";
-import { generateSummary } from "@/actions/generateActions";
-import { readStreamableValue } from "@ai-sdk/rsc";
 import { toast } from "react-hot-toast";
 import { PROGRESS_STEPS, VALIDATION } from "@/constants/app";
 import { useCallback, useRef } from "react";
@@ -97,32 +95,57 @@ export function useSummarizer() {
         if (!normalizedDocument.trim()) throw new Error("No content to summarize.");
 
         setProgress(PROGRESS_STEPS.AI_PROCESSING);
-        const result = await generateSummary(
-          normalizedDocument,
-          language,
-          modelName,
-          numWords
-        );
+        const response = await fetch("/api/summarize", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            document: normalizedDocument,
+            language,
+            modelName,
+            numWords,
+          }),
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          const payload = (await response.json().catch(() => null)) as
+            | { error?: string }
+            | null;
+          throw new Error(payload?.error || "Failed to generate summary");
+        }
+
+        if (!response.body) {
+          throw new Error("Failed to generate summary");
+        }
 
         if (!isCurrentRun(runId, controller)) {
+          await response.body.cancel();
           return;
         }
 
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
         let accumulatedContent = "";
         const expectedChars = numWords * 5; // ~5 chars per word heuristic
 
-        for await (const content of readStreamableValue(result)) {
-          if (!isCurrentRun(runId, controller)) break;
-          if (content) {
-            accumulatedContent = content.trim();
-            setSummary(accumulatedContent);
-
+        while (isCurrentRun(runId, controller)) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          accumulatedContent += decoder.decode(value, { stream: true });
+          const visible = accumulatedContent.trim();
+          if (visible) {
+            setSummary(visible);
             const progressIncrement = Math.min(
-              (accumulatedContent.length / expectedChars) * 30,
+              (visible.length / expectedChars) * 30,
               30
             );
             setProgress(PROGRESS_STEPS.AI_PROCESSING + progressIncrement);
           }
+        }
+
+        if (!isCurrentRun(runId, controller)) {
+          await reader.cancel();
+          return;
         }
 
         if (controller.signal.aborted || runId !== runIdRef.current) {

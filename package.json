@@ -16,7 +16,6 @@
     "@ai-sdk/google": "^4.0.107",
     "@ai-sdk/mistral": "^4.0.74",
     "@ai-sdk/openai": "^4.0.104",
-    "@ai-sdk/rsc": "^3.0.155",
     "@radix-ui/react-label": "^2.1.17",
     "@radix-ui/react-progress": "^1.2.1",
     "@radix-ui/react-select": "^2.4.1",
