@@ -28,8 +28,8 @@ src/
 │   ├── page.tsx             # Homepage (server component)
 │   ├── privacy/page.tsx     # Privacy policy
 │   └── terms/page.tsx       # Terms of service
-├── actions/                 # Server Actions
-│   └── generateActions.ts   # AI summarization with streaming
+├── actions/                 # Summary generation (imported by the summarize route)
+│   └── generateActions.ts   # AI provider selection and streaming
 ├── components/              # React components
 │   ├── ui/                  # Radix UI + Shadcn primitives
 │   ├── ScrapeSummarize.tsx  # Main client component orchestrator
@@ -55,7 +55,7 @@ src/
 
 1. **Server-side Content Extraction**: `/api/proxy` uses Cheerio to parse HTML, preventing CORS issues and enabling SSRF protection
 
-2. **Streaming AI Responses**: Server actions use `streamText()` + `createStreamableValue()` from Vercel AI SDK; clients read via `readStreamableValue()`
+2. **Streaming AI Responses**: `POST /api/summarize` uses `streamText()` and returns a text stream. The client aborts that fetch to stop provider work.
 
 3. **State Management**: Zustand store (`useSummarizerStore`) holds form state, extracted text, summary, and UI state
 
@@ -68,8 +68,8 @@ src/
 ### Data Flow
 
 ```
-User submits URL → /api/proxy extracts text → generateSummary() server action →
-Stream AI response → Display summary with export options
+User submits URL → /api/proxy extracts text → POST /api/summarize streams text →
+Display summary with export options
 ```
 
 ## Environment Variables

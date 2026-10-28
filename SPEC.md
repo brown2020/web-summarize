@@ -11,7 +11,7 @@ Web Summarize is a Next.js web application that accepts a public webpage URL, ex
 - Choose an AI model from the environment-configured provider catalog.
 - Choose a target summary length between 10 and 300 words.
 - Generate a streaming summary with progress labels for fetching, extraction, AI processing, and completion.
-- Cancel local streaming, retry after an error, regenerate with the current settings, or regenerate from edited extracted text.
+- Cancel streaming, which aborts the summary request, retry after an error, regenerate with the current settings, or regenerate from edited extracted text.
 - Copy the summary, download it as Markdown, share a prefilled link, and open the original source URL.
 - Use shareable query parameters: `url`, `lang`, `model`, and `words`.
 
@@ -22,8 +22,9 @@ Web Summarize is a Next.js web application that accepts a public webpage URL, ex
 - State: `src/store/summarizerStore.ts` stores URL, language, model, word count, extracted text, summary, pending state, progress, and errors.
 - Client orchestration: `src/hooks/useSummarizer.ts` coordinates proxy fetches, AI streaming, cancellation, stale-run checks, progress updates, and toasts.
 - Server extraction: `src/app/api/proxy/route.ts` validates incoming URLs, follows bounded redirects, pins DNS lookups, blocks private and special-use network targets, limits content size, checks HTML content type, and extracts text with Cheerio.
-- AI generation: `src/actions/generateActions.ts` validates inputs with Zod, verifies model availability from environment keys, selects the provider model, and streams text with the Vercel AI SDK.
-- Shared limits: `src/constants/app.ts` defines progress steps, timeouts, word count bounds, content size, document length, and redirect limits.
+- AI generation: `POST /api/summarize` rate-limits the caller and calls `src/actions/generateActions.ts`, which validates inputs with Zod, verifies model availability from environment keys, selects the provider model, and streams text. The request abort signal stops provider work.
+- Home page: `src/app/page.tsx` is dynamic so the model list matches the keys present at request time.
+- Shared limits: `src/constants/app.ts` defines progress steps, timeouts, word count bounds, content size, document length, redirect limits, and rate limits.
 
 ## Validation Evidence
 

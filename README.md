@@ -9,7 +9,8 @@ Enter a public webpage URL and get a streamed AI summary in a chosen language an
 - **Multi-model summaries** — GPT-4.1, Claude Sonnet 4.5, Gemini 2.5 Flash, Mistral Large, Llama 3.3 70B (Fireworks); UI only lists models whose env keys are set
 - **10 languages** — English, French, Spanish, German, Italian, Portuguese, Chinese, Russian, Hindi, Japanese
 - **Target length** — about 10–300 words
-- **Streaming UI** — progress for fetch → extract → AI → done; cancel, retry, regenerate
+- **Streaming UI** — progress for fetch → extract → AI → done; cancel aborts the summary request, retry, regenerate
+- **Abuse limits** — per-instance caps on `/api/proxy` (60/10 min, 4 in flight per IP) and `/api/summarize` (20/10 min, 2 in flight per IP)
 - **Edit extracted text** — tweak the scraped body and regenerate
 - **Output actions** — copy, download Markdown, share a prefilled link (`url`, `lang`, `model`, `words`), open source
 - **Legal pages** — `/privacy`, `/terms`
@@ -25,7 +26,7 @@ No Firebase, Stripe, or user accounts.
 | UI | React `^19.2.5`, Tailwind CSS `^4.2.2`, Radix primitives, Lucide, react-hot-toast |
 | Language | TypeScript `^6` |
 | Scraping | axios `^1.15`, cheerio `^1.2` |
-| AI | Vercel AI SDK (`ai` `^6`, `@ai-sdk/*`, `@ai-sdk/rsc`) |
+| AI | Vercel AI SDK (`ai` `^6`, `@ai-sdk/*`) |
 | Validation | Zod `^4` |
 | State | Zustand `^5` |
 | Tests | Vitest `^4` |
@@ -39,7 +40,8 @@ src/
     page.tsx              # Home (passes available models)
     api/proxy/route.ts    # HTML fetch + text extraction
     privacy/ terms/ error / not-found
-  actions/generateActions.ts   # Streaming summarization Server Action
+  app/api/summarize/route.ts   # Rate-limited summary stream
+  actions/generateActions.ts   # Provider selection and summary streaming
   components/             # ScrapeSummarize, SummarizerForm, ui/*
   hooks/useSummarizer.ts
   store/summarizerStore.ts

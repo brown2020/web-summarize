@@ -7,7 +7,7 @@ Web Summarize is a Next.js 16 App Router application for scraping public HTML pa
 1. `src/components/SummarizerForm.tsx` collects URL, language, model, and word count.
 2. `src/hooks/useSummarizer.ts` POSTs the URL to `/api/proxy`, manages progress, cancellation, stale-run prevention, and summary streaming.
 3. `src/app/api/proxy/route.ts` validates and fetches HTML server-side (POST only; GET 405), applies DNS pinning and private-network blocking, then extracts readable text with Cheerio. When `SUMMARIZE_USE_FIXTURES=true`, returns labeled fixture text (no live HTTP).
-4. `src/actions/generateActions.ts` validates summary inputs, checks provider availability, and streams model output.
+4. `src/app/api/summarize/route.ts` rate-limits the caller and calls `src/actions/generateActions.ts`, which validates summary inputs, checks provider availability, and streams model output. The request abort signal stops provider work when the client cancels.
 5. `src/store/summarizerStore.ts` holds form, progress, extracted text, summary, pending, and error state.
 
 ## Commands
@@ -35,8 +35,8 @@ Model availability is intentionally filtered in `src/lib/model-availability.ts` 
 
 ## Code Boundaries
 
-- Keep app routes under `src/app/`; server-only scraping lives in `src/app/api/proxy/route.ts`.
-- Keep AI provider selection and streaming in `src/actions/generateActions.ts`.
+- Keep app routes under `src/app/`; server-only scraping lives in `src/app/api/proxy/route.ts`. Summary HTTP lives in `src/app/api/summarize/route.ts`.
+- Keep AI provider selection and streaming in `src/actions/generateActions.ts`. Do not mark that module `"use server"`; the route owns the request signal and rate limit.
 - Keep summarization orchestration and cancellation in `src/hooks/useSummarizer.ts`.
 - Keep shared limits, progress steps, and validation ranges in `src/constants/app.ts`.
 - Keep URL and network validation helpers in `src/utils/` with Vitest coverage.
@@ -46,7 +46,8 @@ Preserve the existing `@/*` path alias from `tsconfig.json`. Prefer tightening e
 
 ## Safety Notes
 
-- Preserve SSRF protections when changing URL fetching: reject localhost and embedded credentials, block private/special-use IPs, keep redirect validation, and keep pinned DNS lookup behavior.
+- Preserve SSRF protections when changing URL fetching: reject localhost and embedded credentials, block private/special-use IPs (including 6to4, NAT64, and Teredo embeddings), keep redirect validation, keep `proxy: false`, and keep pinned DNS lookup behavior.
+- Keep the per-IP rate limits on `/api/proxy` and `/api/summarize`.
 - Preserve stale-run protection in `useSummarizer`: run IDs and abort controllers prevent older async work from updating current UI state.
 - Keep provider API keys server-side. Client code should receive only filtered model options and UI-safe state.
 - Avoid broad lockfile churn. Package updates should be small, verified, and tied to a kept dependency change.
