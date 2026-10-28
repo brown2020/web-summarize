@@ -30,8 +30,8 @@ function SummaryContent({ summary }: { summary: string }) {
 
   return (
     <div className="space-y-4">
-      {paragraphs.map((paragraph) => (
-        <p key={paragraph} className="leading-7">
+      {paragraphs.map((paragraph, index) => (
+        <p key={index} className="leading-7">
           {paragraph}
         </p>
       ))}
