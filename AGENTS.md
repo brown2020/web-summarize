@@ -54,4 +54,4 @@ Preserve the existing `@/*` path alias from `tsconfig.json`. Prefer tightening e
 
 ## Documentation
 
-`SPEC.md` records current implementation and validation evidence. README contains user-facing documentation and candidate roadmap ideas; do not convert roadmap ideas into approved work without user direction.
+`SPEC.md` records current implementation and validation evidence. README is user-facing setup. `roadmap.md` lists unapproved next steps; do not convert those ideas into work without user direction.
