@@ -4,9 +4,11 @@ import type { AxiosRequestConfig } from "axios";
 import * as cheerio from "cheerio";
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
-import { isPrivateIp } from "@/utils/network";
+import { isIpAddress, isPrivateIp, unwrapHostBrackets } from "@/utils/network";
 import { validateAndNormalizeUrl } from "@/utils/url-validation";
 import { TIMEOUTS, VALIDATION } from "@/constants/app";
+import { getClientIp } from "@/lib/client-ip";
+import { proxyLimiter } from "@/lib/limiters";
 import {
   FIXTURE_EXTRACTED_TEXT,
   summarizeFixturesEnabled,
@@ -42,26 +44,47 @@ const AXIOS_CODE_STATUS: Record<string, number> = {
   ERR_MAX_CONTENT_LENGTH_EXCEEDED: 413,
 };
 
-function jsonError(message: string, status: number) {
-  return NextResponse.json({ error: message }, { status });
+class PublicFetchError extends Error {
+  readonly status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "PublicFetchError";
+    this.status = status;
+  }
+}
+
+function jsonError(message: string, status: number, retryAfterSeconds?: number) {
+  const headers = new Headers();
+  if (retryAfterSeconds !== undefined) {
+    headers.set("Retry-After", String(retryAfterSeconds));
+  }
+  return NextResponse.json({ error: message }, { status, headers });
+}
+
+function isHtmlContentType(contentType: string): boolean {
+  const mediaType = contentType.split(";")[0]?.trim().toLowerCase() ?? "";
+  return mediaType === "text/html";
 }
 
 async function resolvePublicAddress(hostname: string) {
-  if (isIP(hostname)) {
-    if (isPrivateIp(hostname)) {
-      throw new Error("Private or local network URLs are not allowed.");
+  const host = unwrapHostBrackets(hostname);
+  if (isIP(host)) {
+    if (!isIpAddress(host) || isPrivateIp(host)) {
+      throw new PublicFetchError("Private or local network URLs are not allowed.", 403);
     }
-    return { address: hostname, family: isIP(hostname) };
+    const family = isIP(host);
+    return { address: host, family };
   }
 
-  const records = await lookup(hostname, { all: true, verbatim: true });
+  const records = await lookup(host, { all: true, verbatim: true });
   if (!records.length) {
-    throw new Error("Could not resolve hostname.");
+    throw new PublicFetchError("Could not resolve hostname.", 502);
   }
 
   const publicRecord = records.find((record) => !isPrivateIp(record.address));
   if (!publicRecord) {
-    throw new Error("Private or local network URLs are not allowed.");
+    throw new PublicFetchError("Private or local network URLs are not allowed.", 403);
   }
 
   return publicRecord;
@@ -95,6 +118,8 @@ async function fetchHtmlWithRedirects(initialUrl: string) {
       responseType: "text",
       maxContentLength: VALIDATION.MAX_CONTENT_BYTES,
       maxBodyLength: VALIDATION.MAX_CONTENT_BYTES,
+      // Ignore HTTP_PROXY / HTTPS_PROXY so a proxy cannot dial the original hostname.
+      proxy: false,
       lookup: lookupFn,
       headers: {
         "User-Agent":
@@ -105,12 +130,12 @@ async function fetchHtmlWithRedirects(initialUrl: string) {
     if (response.status >= 300 && response.status < 400) {
       const location = response.headers.location;
       if (!location) {
-        throw new Error("Redirect response missing Location header.");
+        throw new PublicFetchError("Redirect response missing Location header.", 502);
       }
       const nextUrl = new URL(location, currentUrl).toString();
       const validation = validateAndNormalizeUrl(nextUrl);
       if (!validation.isValid || !validation.normalizedUrl) {
-        throw new Error("Redirected URL is invalid or not allowed.");
+        throw new PublicFetchError("Redirected URL is invalid or not allowed.", 403);
       }
       currentUrl = validation.normalizedUrl;
       redirects += 1;
@@ -120,7 +145,7 @@ async function fetchHtmlWithRedirects(initialUrl: string) {
     return response;
   }
 
-  throw new Error("Too many redirects.");
+  throw new PublicFetchError("Too many redirects.", 502);
 }
 
 /**
@@ -153,6 +178,23 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const decision = proxyLimiter.tryAcquire(`proxy:${getClientIp(req.headers)}`);
+  if (!decision.ok) {
+    return jsonError(
+      "Too many requests. Please try again later.",
+      429,
+      decision.retryAfterSeconds
+    );
+  }
+
+  try {
+    return await handleProxyPost(req);
+  } finally {
+    decision.release();
+  }
+}
+
+async function handleProxyPost(req: NextRequest) {
   let url: string | null = null;
   try {
     const body = (await req.json()) as { url?: unknown };
@@ -187,7 +229,7 @@ export async function POST(req: NextRequest) {
     if (response.status >= 400) {
       const errorMessage =
         HTTP_ERROR_MESSAGES[response.status] ||
-        `Website returned error ${response.status}: ${response.statusText}`;
+        `Website returned error ${response.status}`;
 
       return jsonError(errorMessage, response.status);
     }
@@ -196,7 +238,7 @@ export async function POST(req: NextRequest) {
     const contentType = Array.isArray(contentTypeHeader)
       ? contentTypeHeader.join(",")
       : String(contentTypeHeader ?? "");
-    if (!contentType.includes("text/html")) {
+    if (!isHtmlContentType(contentType)) {
       return jsonError("Only HTML pages can be summarized.", 415);
     }
 
@@ -209,27 +251,23 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ text }, { status: 200 });
   } catch (error) {
-    let errorMessage = "Failed to fetch the content.";
-    let statusCode = 502;
-
     if (axios.isAxiosError(error)) {
-      errorMessage = AXIOS_CODE_MESSAGES[error.code ?? ""] || errorMessage;
-      statusCode = AXIOS_CODE_STATUS[error.code ?? ""] || statusCode;
-
-      if (!AXIOS_CODE_MESSAGES[error.code ?? ""]) {
-        if (error.response) {
-          errorMessage = `Server returned error ${error.response.status}: ${error.response.statusText}`;
-          statusCode = error.response.status >= 500 ? 502 : error.response.status;
-        } else if (error.request) {
-          errorMessage =
-            "No response received from the website. Please try again later.";
-        }
+      const errorMessage = AXIOS_CODE_MESSAGES[error.code ?? ""] || "Failed to fetch the content.";
+      const statusCode = AXIOS_CODE_STATUS[error.code ?? ""] || (error.response && error.response.status >= 500
+        ? 502
+        : error.response?.status || 502);
+      if (!AXIOS_CODE_MESSAGES[error.code ?? ""] && !error.response) {
+        return jsonError("No response received from the website. Please try again later.", 502);
       }
-    } else if (error instanceof Error) {
-      errorMessage = error.message;
-      statusCode = error.message.includes("not allowed") ? 403 : 400;
+      return jsonError(errorMessage, statusCode);
     }
 
-    return jsonError(errorMessage, statusCode);
+    if (error instanceof PublicFetchError) {
+      return jsonError(error.message, error.status);
+    }
+
+    const name = error instanceof Error ? error.name : "Error";
+    console.error(`Proxy fetch failed: ${name}`);
+    return jsonError("Failed to fetch the content.", 502);
   }
 }
