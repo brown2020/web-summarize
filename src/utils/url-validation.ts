@@ -2,6 +2,8 @@
  * URL validation utilities
  */
 
+import { isIpAddress, isPrivateIp, unwrapHostBrackets } from "@/utils/network";
+
 export interface UrlValidationResult {
   isValid: boolean;
   normalizedUrl?: string;
@@ -47,13 +49,14 @@ export function validateAndNormalizeUrl(url: string): UrlValidationResult {
     }
 
     const hostname = parsedUrl.hostname.toLowerCase();
+    const bareHost = unwrapHostBrackets(hostname);
 
     if (
-      hostname === "localhost" ||
-      hostname === "127.0.0.1" ||
-      hostname === "0.0.0.0" ||
-      hostname === "::1" ||
-      hostname.endsWith(".local")
+      bareHost === "localhost" ||
+      bareHost === "127.0.0.1" ||
+      bareHost === "0.0.0.0" ||
+      bareHost === "::1" ||
+      bareHost.endsWith(".local")
     ) {
       return {
         isValid: false,
@@ -61,8 +64,22 @@ export function validateAndNormalizeUrl(url: string): UrlValidationResult {
       };
     }
 
-    // Must have a hostname with at least one dot
-    if (!hostname.includes(".")) {
+    if (isIpAddress(bareHost)) {
+      if (isPrivateIp(bareHost)) {
+        return {
+          isValid: false,
+          error: "Private or local network URLs are not allowed",
+        };
+      }
+
+      return {
+        isValid: true,
+        normalizedUrl: parsedUrl.toString(),
+      };
+    }
+
+    // Hostnames need a dot so single-label internal names are rejected.
+    if (!bareHost.includes(".")) {
       return {
         isValid: false,
         error: "Please enter a valid domain name (e.g., example.com)",
