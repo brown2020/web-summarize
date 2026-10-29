@@ -1,13 +1,22 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { RATE_LIMITS } from "@/constants/app";
-import { summaryLimiter } from "@/lib/limiters";
+import { summaryLimiter, summaryUserLimiter } from "@/lib/limiters";
 import { POST } from "./route";
 
-const { streamText } = vi.hoisted(() => ({ streamText: vi.fn() }));
+const { streamText, verifyFirebaseIdToken } = vi.hoisted(() => ({
+  streamText: vi.fn(),
+  verifyFirebaseIdToken: vi.fn(async (token: string) =>
+    token === "good-token" ? { uid: "user-1" } : null
+  ),
+}));
 
 vi.mock("ai", () => ({
   streamText,
+}));
+
+vi.mock("@/lib/firebase/id-token", () => ({
+  verifyFirebaseIdToken,
 }));
 
 const summaryBody = {
@@ -17,9 +26,13 @@ const summaryBody = {
   numWords: 20,
 };
 
-function postSummary(body: unknown, init?: { signal?: AbortSignal; ip?: string }) {
+function postSummary(
+  body: unknown,
+  init?: { signal?: AbortSignal; ip?: string; token?: string | null }
+) {
   const headers = new Headers({ "Content-Type": "application/json" });
   if (init?.ip) headers.set("x-real-ip", init.ip);
+  if (init?.token !== null) headers.set("Authorization", `Bearer ${init?.token ?? "good-token"}`);
   return new NextRequest("http://localhost/api/summarize", {
     method: "POST",
     headers,
@@ -36,7 +49,9 @@ describe("POST /api/summarize", () => {
 
   beforeEach(() => {
     summaryLimiter.reset();
+    summaryUserLimiter.reset();
     streamText.mockReset();
+    verifyFirebaseIdToken.mockClear();
     process.env.SUMMARIZE_USE_FIXTURES = "true";
     delete process.env.OPENAI_API_KEY;
   });
@@ -48,11 +63,42 @@ describe("POST /api/summarize", () => {
     else process.env.OPENAI_API_KEY = previous.openai;
   });
 
-  it("returns fixture text without calling a provider", async () => {
+  it("returns 401 when the request has no token", async () => {
+    const res = await POST(postSummary(summaryBody, { token: null }));
+    expect(res.status).toBe(401);
+    const body = await res.json();
+    expect(body.error).toBe("Authentication required.");
+    expect(streamText).not.toHaveBeenCalled();
+  });
+
+  it("returns 401 when the token is not a valid Firebase ID token", async () => {
+    const res = await POST(postSummary(summaryBody, { token: "not-a-firebase-token" }));
+    expect(res.status).toBe(401);
+    const body = await res.json();
+    expect(body.error).toBe("Authentication required.");
+    expect(JSON.stringify(body)).not.toContain("not-a-firebase-token");
+    expect(streamText).not.toHaveBeenCalled();
+  });
+
+  it("returns fixture text for a verified user without calling a provider", async () => {
     const res = await POST(postSummary(summaryBody));
     expect(res.status).toBe(200);
     expect(await res.text()).toContain("[fixture]");
     expect(streamText).not.toHaveBeenCalled();
+    expect(verifyFirebaseIdToken).toHaveBeenCalledWith("good-token");
+  });
+
+  it("returns 429 when the signed-in user exceeds the per-user limit", async () => {
+    const held = [];
+    for (let attempt = 0; attempt < RATE_LIMITS.SUMMARY_USER.maxConcurrent; attempt += 1) {
+      const decision = summaryUserLimiter.tryAcquire("summary-user:user-1");
+      expect(decision.ok).toBe(true);
+      if (decision.ok) held.push(decision);
+    }
+
+    const res = await POST(postSummary(summaryBody, { ip: "203.0.113.88" }));
+    expect(res.status).toBe(429);
+    held.forEach((decision) => decision.release());
   });
 
   it("rejects an unknown model", async () => {

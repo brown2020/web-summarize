@@ -5,7 +5,7 @@ Punchlist after the 28 Oct 2026 maintenance pass on `dev`. No open GitHub issues
 ## Next steps
 
 1. Decide whether a public deployment needs a shared quota. The current limiter is in memory on one process. Several instances, or a cold start, do not share counters, so the published per-IP caps are not a global spend cap.
-2. Decide whether live summarization should require a caller credential. The app has no accounts. Anyone who can reach the deployment can use the configured provider keys up to the per-instance limit.
+2. `/api/summarize` now requires a verified Firebase user. The proxy route is still public. Decide whether scraping should require the same session.
 3. Replace `'unsafe-inline'` in the Content-Security-Policy when the app can serve Next.js scripts with nonces or hashes. Production already omits `'unsafe-eval'`.
 4. Remove the TypeScript 6 API alias after typescript-eslint supports the TypeScript 7 API. Until then, `typescript` must stay on `@typescript/typescript6`, and `@typescript/native` supplies `tsc` 7. ESLint fails if the root `typescript` package is 7.
 5. Add an optional live provider smoke check outside the default CI gate. The gate uses `SUMMARIZE_USE_FIXTURES=true` so it does not call providers or spend credits.
@@ -29,8 +29,11 @@ No confirmed open bug in the current `dev` tree. `npm run lint`, `npm run typech
 
 No open GitHub issues and no open pull requests.
 
-- `POST /api/summarize` is public. The only control is the per-IP in-memory rate limit. Auth behavior is unchanged on purpose.
+- `POST /api/summarize` requires a Firebase ID token verified on the server, plus the per-IP and per-user in-memory limits. Those limits still reset per process.
+- `POST /api/proxy` is still public.
 
 ## Deployment
 
 Vercel project linked Oct 28, 2026 (team `ignitechannel`, project `web-summarize`). Dev previews are at `web-summarize-git-dev-ignitechannel.vercel.app`. Live summaries need at least one AI key, `OPENAI_API_KEY` by default, set in Vercel. Provider keys are set on the dev preview.
+
+Firebase Auth is not provisioned by this repo. Steve still needs a Firebase project with Email/Password and email-link sign-in enabled, authorized domains for localhost and the dev alias, and the `NEXT_PUBLIC_FIREBASE_*` client values set in Vercel before rebuilding the preview. No service-account private key is required.

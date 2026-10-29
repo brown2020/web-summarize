@@ -30,9 +30,10 @@ export const VALIDATION = {
 
 /**
  * Per-instance abuse limits. `maxInFlight` is shared across clients on this process.
- * Proxy fetches and summary generations are counted separately.
+ * Proxy fetches, per-IP summaries, and per-user summaries are counted separately.
  */
 export const RATE_LIMITS = {
   PROXY: { limit: 60, windowMs: 10 * 60 * 1000, maxConcurrent: 4, maxInFlight: 20 },
   SUMMARY: { limit: 20, windowMs: 10 * 60 * 1000, maxConcurrent: 2, maxInFlight: 8 },
+  SUMMARY_USER: { limit: 20, windowMs: 10 * 60 * 1000, maxConcurrent: 2, maxInFlight: 8 },
 } as const;

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSummaryResponse } from "@/actions/generateActions";
+import { requireSummaryUser } from "@/lib/auth/require-user";
 import { getClientIp } from "@/lib/client-ip";
-import { summaryLimiter } from "@/lib/limiters";
+import { summaryLimiter, summaryUserLimiter } from "@/lib/limiters";
 
 export const dynamic = "force-dynamic";
 
@@ -15,22 +16,46 @@ function jsonError(message: string, status: number, retryAfterSeconds?: number) 
 }
 
 export async function POST(req: NextRequest) {
-  const decision = summaryLimiter.tryAcquire(`summary:${getClientIp(req.headers)}`);
-  if (!decision.ok) {
+  const ipDecision = summaryLimiter.tryAcquire(`summary:${getClientIp(req.headers)}`);
+  if (!ipDecision.ok) {
     return jsonError(
       "Too many requests. Please try again later.",
       429,
-      decision.retryAfterSeconds
+      ipDecision.retryAfterSeconds
     );
   }
+
+  const user = await requireSummaryUser(req.headers.get("authorization"));
+  if (!user) {
+    ipDecision.release();
+    return jsonError("Authentication required.", 401);
+  }
+
+  const userDecision = summaryUserLimiter.tryAcquire(`summary-user:${user.uid}`);
+  if (!userDecision.ok) {
+    ipDecision.release();
+    return jsonError(
+      "Too many requests. Please try again later.",
+      429,
+      userDecision.retryAfterSeconds
+    );
+  }
+
+  let released = false;
+  const release = () => {
+    if (released) return;
+    released = true;
+    ipDecision.release();
+    userDecision.release();
+  };
 
   let body: unknown;
   try {
     body = await req.json();
   } catch {
-    decision.release();
+    release();
     return jsonError("Request body must be JSON.", 400);
   }
 
-  return createSummaryResponse(body, req.signal, decision.release);
+  return createSummaryResponse(body, req.signal, release);
 }

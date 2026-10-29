@@ -10,13 +10,14 @@ Enter a public webpage URL and get a streamed AI summary in a chosen language an
 - **10 languages** — English, French, Spanish, German, Italian, Portuguese, Chinese, Russian, Hindi, Japanese
 - **Target length** — about 10–300 words
 - **Streaming UI** — progress for fetch, extract, AI, and done. Cancel aborts the summary request. Retry and regenerate are available, including regenerate from edited extracted text
-- **Per-instance abuse limits** — `/api/proxy`: 60 requests / 10 minutes and 4 in flight per IP (20 in flight for the process). `/api/summarize`: 20 requests / 10 minutes and 2 in flight per IP (8 in flight for the process)
+- **Sign-in** — Firebase email/password and email-link sign-in. `/api/summarize` requires a Firebase ID token verified on the server
+- **Per-instance abuse limits** — `/api/proxy`: 60 requests / 10 minutes and 4 in flight per IP (20 in flight for the process). `/api/summarize`: the same 20 requests / 10 minutes and 2 in flight, applied per IP and again per signed-in user (8 in flight for the process on each limiter)
 - **Output actions** — copy, download Markdown, share a prefilled link (`url`, `lang`, `model`, `words`), open the source page
 - **Response headers** — Content-Security-Policy, `X-Content-Type-Options: nosniff`, and `X-Frame-Options: DENY`
 - **Legal pages** — `/privacy`, `/terms`
 - **Fixture mode** — `SUMMARIZE_USE_FIXTURES=true` returns labeled fixture text and skips live fetch and live model calls
 
-No Firebase, Stripe, or user accounts.
+No Stripe. Accounts are Firebase Auth only.
 
 ## Tech stack
 
@@ -29,6 +30,7 @@ No Firebase, Stripe, or user accounts.
 | AI | Vercel AI SDK (`ai` `^7.0.156`, `@ai-sdk/openai`, `@ai-sdk/anthropic`, `@ai-sdk/google`, `@ai-sdk/mistral`) |
 | Validation | Zod `^4.6.7` |
 | State | Zustand `^5.0.16` |
+| Auth | Firebase Auth (`firebase`) — email/password and email link |
 | Tests | Vitest `^5.0.5` on Vite `^8.3.5` |
 | Lint | ESLint `^10.13.0` + `eslint-config-next` |
 
@@ -39,9 +41,11 @@ No Firebase, Stripe, or user accounts.
 ```
 src/
   app/
-    page.tsx                 # Dynamic home (available models at request time)
+    page.tsx                 # Dynamic home, gated by sign-in
+    signin/page.tsx          # Email/password and email-link sign-in
+    loginfinish/page.tsx     # Completes an email sign-in link
     api/proxy/route.ts       # HTML fetch + text extraction
-    api/summarize/route.ts   # Rate-limited summary stream
+    api/summarize/route.ts   # Signed-in, rate-limited summary stream
     privacy/ terms/ error / not-found
   actions/generateActions.ts # Provider selection and summary streaming
   components/                # ScrapeSummarize, SummarizerForm, ui/*
@@ -85,6 +89,14 @@ Copy `.env.example` to `.env.local`. Never commit real keys. Names only:
 | `MISTRAL_API_KEY` | Mistral Large. [Mistral Console](https://console.mistral.ai/) |
 | `FIREWORKS_API_KEY` | Llama 3.3 70B via Fireworks. [Fireworks](https://fireworks.ai/) |
 | `SUMMARIZE_USE_FIXTURES` | Set to `true` to return labeled fixtures from the proxy and summarize routes |
+| `NEXT_PUBLIC_FIREBASE_APIKEY` | Firebase web API key |
+| `NEXT_PUBLIC_FIREBASE_AUTHDOMAIN` | Firebase auth domain |
+| `NEXT_PUBLIC_FIREBASE_PROJECTID` | Firebase project id. The server checks ID tokens against this project |
+| `NEXT_PUBLIC_FIREBASE_STORAGEBUCKET` | Firebase storage bucket (client config only) |
+| `NEXT_PUBLIC_FIREBASE_MESSAGINGSENDERID` | Firebase messaging sender id (client config only) |
+| `NEXT_PUBLIC_FIREBASE_APPID` | Firebase web app id |
+
+Sign-in stays off until the Firebase client values are set. `/api/summarize` still returns 401 until a token verifies for `NEXT_PUBLIC_FIREBASE_PROJECTID`. No Firebase private key is used.
 
 The homepage and model checks read these at request time. A missing key hides that model. With fixtures enabled, every catalog model is listed and no provider is called. Provider clients are created when a summary runs, so `npm run build` succeeds with no keys set.
 

@@ -1,3 +1,4 @@
+import { getCurrentIdToken } from "@/lib/firebase/client";
 import { useSummarizerStore } from "@/store/summarizerStore";
 import { toast } from "react-hot-toast";
 import { PROGRESS_STEPS, VALIDATION } from "@/constants/app";
@@ -95,9 +96,14 @@ export function useSummarizer() {
         if (!normalizedDocument.trim()) throw new Error("No content to summarize.");
 
         setProgress(PROGRESS_STEPS.AI_PROCESSING);
+        const idToken = await getCurrentIdToken();
+        if (!idToken) throw new Error("Sign in to generate a summary.");
         const response = await fetch("/api/summarize", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${idToken}`,
+          },
           body: JSON.stringify({
             document: normalizedDocument,
             language,
