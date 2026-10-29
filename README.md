@@ -10,7 +10,7 @@ Enter a public webpage URL and get a streamed AI summary in a chosen language an
 - **10 languages** — English, French, Spanish, German, Italian, Portuguese, Chinese, Russian, Hindi, Japanese
 - **Target length** — about 10–300 words
 - **Streaming UI** — progress for fetch, extract, AI, and done. Cancel aborts the summary request. Retry and regenerate are available, including regenerate from edited extracted text
-- **Sign-in** — Firebase email/password and email-link sign-in. `/api/summarize` requires a Firebase ID token verified on the server
+- **Sign-in** — Firebase email/password and Google sign-in. An email link is also available. `/api/summarize` requires a Firebase ID token verified on the server
 - **Per-instance abuse limits** — `/api/proxy`: 60 requests / 10 minutes and 4 in flight per IP (20 in flight for the process). `/api/summarize`: the same 20 requests / 10 minutes and 2 in flight, applied per IP and again per signed-in user (8 in flight for the process on each limiter)
 - **Output actions** — copy, download Markdown, share a prefilled link (`url`, `lang`, `model`, `words`), open the source page
 - **Response headers** — Content-Security-Policy, `X-Content-Type-Options: nosniff`, and `X-Frame-Options: DENY`
@@ -30,7 +30,7 @@ No Stripe. Accounts are Firebase Auth only.
 | AI | Vercel AI SDK (`ai` `^7.0.156`, `@ai-sdk/openai`, `@ai-sdk/anthropic`, `@ai-sdk/google`, `@ai-sdk/mistral`) |
 | Validation | Zod `^4.6.7` |
 | State | Zustand `^5.0.16` |
-| Auth | Firebase Auth (`firebase`) — email/password and email link |
+| Auth | Firebase Auth (`firebase`) — email/password and Google |
 | Tests | Vitest `^5.0.5` on Vite `^8.3.5` |
 | Lint | ESLint `^10.13.0` + `eslint-config-next` |
 
@@ -42,7 +42,7 @@ No Stripe. Accounts are Firebase Auth only.
 src/
   app/
     page.tsx                 # Dynamic home, gated by sign-in
-    signin/page.tsx          # Email/password and email-link sign-in
+    signin/page.tsx          # Email/password and Google sign-in
     loginfinish/page.tsx     # Completes an email sign-in link
     api/proxy/route.ts       # HTML fetch + text extraction
     api/summarize/route.ts   # Signed-in, rate-limited summary stream

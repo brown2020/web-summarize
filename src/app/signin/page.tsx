@@ -23,7 +23,7 @@ export default function SignInPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Sign in with email and password, or request a one-time email link.
+            Sign in with email and password or Google. An email link is also available.
           </p>
           <SignInForm />
           <p className="text-sm">

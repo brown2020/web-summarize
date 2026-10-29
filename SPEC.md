@@ -6,7 +6,7 @@ Web Summarize is a Next.js application that accepts a public webpage URL, extrac
 
 ## Shipped behavior
 
-- Sign in with Firebase email/password or an email link before using the summarizer. `/signin` is the sign-in page. `/loginfinish` completes an email link. Signed-out visitors see the sign-in form instead of the summarizer.
+- Sign in with Firebase email/password or Google before using the summarizer. An email link is also available. `/signin` is the sign-in page. `/loginfinish` completes an email link. Signed-out visitors see the sign-in form instead of the summarizer. Google uses `signInWithPopup` and falls back to `signInWithRedirect` when the popup is blocked.
 - Accept a webpage URL with or without a scheme. A missing scheme is normalized to `https://`.
 - Reject localhost, embedded credentials, single-label hostnames, and private or special-use addresses before any fetch. Public IPv4 and IPv6 literals are allowed. The same IP checks run in the form and on the server.
 - Choose one of ten languages: English, French, Spanish, German, Italian, Portuguese, Chinese, Russian, Hindi, Japanese.
@@ -46,7 +46,7 @@ The client key prefers `x-real-ip`. Otherwise it uses the rightmost `x-forwarded
 
 ## Authentication
 
-- Client: Firebase Auth email/password (`signInWithEmailAndPassword`, `createUserWithEmailAndPassword`) and email link (`sendSignInLinkToEmail`, `signInWithEmailLink`).
+- Client: Firebase Auth email/password (`signInWithEmailAndPassword`, `createUserWithEmailAndPassword`), Google (`GoogleAuthProvider` with `signInWithPopup`, then `signInWithRedirect` only for `auth/popup-blocked`), and email link (`sendSignInLinkToEmail`, `signInWithEmailLink`). `auth/account-exists-with-different-credential` shows a fixed message telling the user to use email and password or the email link.
 - Server: `verifyFirebaseIdToken` checks the bearer token's RS256 signature against Google's `securetoken` JWKS, and checks issuer, audience, subject, and expiry for `NEXT_PUBLIC_FIREBASE_PROJECTID`.
 - Missing project id, missing token, bad signature, or expiry all fail closed with 401 and `Authentication required.`
 - The page fetch proxy stays available without a session. Only summary generation requires a user.
@@ -55,7 +55,7 @@ The client key prefers `x-real-ip`. Otherwise it uses the rightmost `x-forwarded
 
 - Private or disallowed targets return a fixed client message. Unexpected proxy and provider failures do not return the underlying error text.
 - Summary timeout returns a timeout message. A cancelled request returns "Request cancelled."
-- Every route sends a same-origin Content-Security-Policy (`script-src` and `style-src` allow `'unsafe-inline'`; `'unsafe-eval'` is added only when `NODE_ENV` is `development`), `X-Content-Type-Options: nosniff`, and `X-Frame-Options: DENY`.
+- Every route sends a Content-Security-Policy (`script-src` and `style-src` allow `'unsafe-inline'`; `'unsafe-eval'` is added only when `NODE_ENV` is `development`; Google sign-in may load `apis.google.com` and `gstatic.com`, and may frame `accounts.google.com` plus Firebase auth domains), `X-Content-Type-Options: nosniff`, and `X-Frame-Options: DENY`.
 
 ## Stack as built
 

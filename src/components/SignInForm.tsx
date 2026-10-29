@@ -1,8 +1,9 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import {
   createUserWithEmailAndPassword,
+  getRedirectResult,
   sendPasswordResetEmail,
   sendSignInLinkToEmail,
   signInWithEmailAndPassword,
@@ -10,40 +11,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { authCode, authMessage } from "@/lib/firebase/auth-errors";
 import { auth, hasClientConfig } from "@/lib/firebase/client";
+import { signInWithGoogle } from "@/lib/firebase/google-sign-in";
 
 export const EMAIL_LINK_STORAGE_KEY = "webSummarizeEmail";
 
 type Mode = "signin" | "signup" | "link";
-
-function authCode(error: unknown): string {
-  if (typeof error === "object" && error !== null && "code" in error) {
-    const code = (error as { code?: unknown }).code;
-    if (typeof code === "string") return code;
-  }
-  return "unknown";
-}
-
-function authMessage(error: unknown): string {
-  switch (authCode(error)) {
-    case "auth/invalid-email":
-      return "Enter a valid email address.";
-    case "auth/invalid-credential":
-    case "auth/wrong-password":
-    case "auth/user-not-found":
-      return "Email or password is incorrect.";
-    case "auth/email-already-in-use":
-      return "An account already exists for that email. Sign in instead.";
-    case "auth/weak-password":
-      return "Use a password of at least 6 characters.";
-    case "auth/too-many-requests":
-      return "Too many attempts. Wait a moment and try again.";
-    case "auth/user-disabled":
-      return "This account is disabled.";
-    default:
-      return "Sign-in failed. Try again.";
-  }
-}
 
 export function SignInForm() {
   const [mode, setMode] = useState<Mode>("signin");
@@ -52,6 +26,37 @@ export function SignInForm() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+
+  useEffect(() => {
+    if (!hasClientConfig) return;
+    let active = true;
+    getRedirectResult(auth).catch((caught: unknown) => {
+      if (!active) return;
+      console.error(`Google sign-in failed: ${authCode(caught)}`);
+      setError(authMessage(caught));
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function continueWithGoogle() {
+    setError(null);
+    setMessage(null);
+    if (!hasClientConfig) {
+      setError("Sign-in is not configured yet.");
+      return;
+    }
+    setPending(true);
+    try {
+      await signInWithGoogle(auth);
+    } catch (caught) {
+      console.error(`Google sign-in failed: ${authCode(caught)}`);
+      setError(authMessage(caught));
+    } finally {
+      setPending(false);
+    }
+  }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -113,6 +118,19 @@ export function SignInForm() {
 
   return (
     <form className="flex flex-col gap-4" onSubmit={onSubmit}>
+      {mode !== "link" ? (
+        <>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={pending || !hasClientConfig}
+            onClick={() => void continueWithGoogle()}
+          >
+            Continue with Google
+          </Button>
+          <p className="text-center text-xs text-muted-foreground">or</p>
+        </>
+      ) : null}
       <div className="space-y-2">
         <Label htmlFor="auth-email">Email</Label>
         <Input

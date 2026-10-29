@@ -36,4 +36,4 @@ No open GitHub issues and no open pull requests.
 
 Vercel project linked Oct 28, 2026 (team `ignitechannel`, project `web-summarize`). Dev previews are at `web-summarize-git-dev-ignitechannel.vercel.app`. Live summaries need at least one AI key, `OPENAI_API_KEY` by default, set in Vercel. Provider keys are set on the dev preview.
 
-Firebase Auth is not provisioned by this repo. Steve still needs a Firebase project with Email/Password and email-link sign-in enabled, authorized domains for localhost and the dev alias, and the `NEXT_PUBLIC_FIREBASE_*` client values set in Vercel before rebuilding the preview. No service-account private key is required.
+Firebase Auth is not provisioned by this repo. Steve still needs Firebase project `websummarize-2026` with Email/Password, email-link, and Google sign-in enabled, authorized domains for localhost and the dev alias, and the `NEXT_PUBLIC_FIREBASE_*` client values set in Vercel before rebuilding the preview. No service-account private key is required.

@@ -29,7 +29,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Summaries require a signed-in account. Use a password or an email link.
+              Summaries require a signed-in account. Use email and password, Google, or an email link.
             </p>
             <SignInForm />
             <p className="text-sm">
