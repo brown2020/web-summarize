@@ -87,7 +87,7 @@ describe("POST /api/summarize", () => {
     const controller = new AbortController();
 
     streamText.mockImplementation(({ abortSignal }: { abortSignal: AbortSignal }) => ({
-      textStream: {
+      fullStream: {
         [Symbol.asyncIterator]() {
           return {
             async next() {
@@ -124,7 +124,7 @@ describe("POST /api/summarize", () => {
     delete process.env.SUMMARIZE_USE_FIXTURES;
     process.env.OPENAI_API_KEY = "test-key";
     streamText.mockImplementation(() => ({
-      textStream: {
+      fullStream: {
         [Symbol.asyncIterator]() {
           return {
             async next() {
@@ -148,7 +148,7 @@ describe("POST /api/summarize", () => {
     delete process.env.SUMMARIZE_USE_FIXTURES;
     process.env.OPENAI_API_KEY = "test-key";
     streamText.mockImplementation(() => ({
-      textStream: {
+      fullStream: {
         [Symbol.asyncIterator]() {
           return {
             async next() {
@@ -170,8 +170,8 @@ describe("POST /api/summarize", () => {
     delete process.env.SUMMARIZE_USE_FIXTURES;
     process.env.OPENAI_API_KEY = "test-key";
     streamText.mockImplementation(() => ({
-      textStream: (async function* () {
-        yield "Hello from the model";
+      fullStream: (async function* () {
+        yield { type: "text-delta", text: "Hello from the model" };
       })(),
     }));
 
@@ -179,5 +179,64 @@ describe("POST /api/summarize", () => {
     expect(res.status).toBe(200);
     expect(await res.text()).toBe("Hello from the model");
     expect(streamText.mock.calls[0]?.[0]?.abortSignal).toBeInstanceOf(AbortSignal);
+  });
+
+  it("passes the system prompt via the system option, not a system message", async () => {
+    delete process.env.SUMMARIZE_USE_FIXTURES;
+    process.env.OPENAI_API_KEY = "test-key";
+    streamText.mockImplementation(() => ({
+      fullStream: (async function* () {
+        yield { type: "text-delta", text: "A short summary." };
+      })(),
+    }));
+
+    const res = await POST(postSummary(summaryBody));
+    expect(res.status).toBe(200);
+    const call = streamText.mock.calls[0]?.[0] as {
+      system?: string;
+      messages?: Array<{ role?: string }>;
+    };
+    expect(call.system).toContain("summarization assistant");
+    expect(call.system).toContain("20");
+    expect(call.system).toContain("english");
+    expect(call.messages?.map((message) => message.role)).toEqual(["user"]);
+  });
+
+  it("returns an error status when the model stream fails before any text", async () => {
+    delete process.env.SUMMARIZE_USE_FIXTURES;
+    process.env.OPENAI_API_KEY = "test-key";
+    streamText.mockImplementation(() => ({
+      fullStream: (async function* () {
+        yield {
+          type: "error",
+          error: Object.assign(new Error("System messages are not allowed sk-live-secret"), {
+            name: "AI_InvalidPromptError",
+          }),
+        };
+      })(),
+    }));
+
+    const res = await POST(postSummary(summaryBody));
+    expect(res.status).toBe(502);
+    const body = await res.json();
+    expect(body.error).toBe("Failed to generate summary.");
+    expect(JSON.stringify(body)).not.toContain("sk-live");
+    expect(JSON.stringify(body)).not.toContain("System messages");
+  });
+
+  it("returns an error status when the model stream ends with no text", async () => {
+    delete process.env.SUMMARIZE_USE_FIXTURES;
+    process.env.OPENAI_API_KEY = "test-key";
+    streamText.mockImplementation(() => ({
+      fullStream: (async function* () {
+        yield { type: "start" };
+      })(),
+    }));
+
+    const res = await POST(postSummary(summaryBody));
+    expect(res.status).toBe(502);
+    const body = await res.json();
+    expect(body.error).toBe("Failed to generate summary.");
+    expect(res.headers.get("content-type")).toContain("application/json");
   });
 });

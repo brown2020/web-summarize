@@ -85,11 +85,12 @@ export function generationErrorResponse(error: unknown, requestSignal: AbortSign
   return jsonError("Failed to generate summary.", 502);
 }
 
-function summaryMessages(document: string, language: string, numWords: number): ModelMessage[] {
-  return [
-    {
-      role: "system",
-      content: `You are a summarization assistant. Generate a summary of the document below.
+function summaryPrompt(document: string, language: string, numWords: number): {
+  system: string;
+  messages: ModelMessage[];
+} {
+  return {
+    system: `You are a summarization assistant. Generate a summary of the document below.
 
 STRICT REQUIREMENTS:
 - Write approximately ${numWords} words
@@ -97,12 +98,23 @@ STRICT REQUIREMENTS:
 - Start immediately with the summary content (no preamble like "Here is..." or "This document...")
 - Use clean, flowing paragraphs only - NO markdown, NO bullet points, NO bold text, NO headers
 - Be concise and informative`,
-    },
-    {
-      role: "user",
-      content: `Document to summarize:\n\n${document}`,
-    },
-  ];
+    messages: [
+      {
+        role: "user",
+        content: `Document to summarize:\n\n${document}`,
+      },
+    ],
+  };
+}
+
+type SummaryStreamPart = {
+  type: string;
+  text?: string;
+  error?: unknown;
+};
+
+function isSummaryStreamPart(value: unknown): value is SummaryStreamPart {
+  return typeof value === "object" && value !== null && "type" in value;
 }
 
 /**
@@ -162,17 +174,34 @@ export async function createSummaryResponse(
       requestSignal,
       AbortSignal.timeout(TIMEOUTS.AI_GENERATION),
     ]);
+    const prompt = summaryPrompt(document, language, numWords);
     const result = streamText({
       model: getModel(modelName),
-      messages: summaryMessages(document, language, numWords),
+      system: prompt.system,
+      messages: prompt.messages,
       temperature: 0.7,
       abortSignal,
     });
 
-    const iterator = result.textStream[Symbol.asyncIterator]();
-    let first: IteratorResult<string>;
+    const iterator = result.fullStream[Symbol.asyncIterator]();
+    const buffered: string[] = [];
     try {
-      first = await iterator.next();
+      while (true) {
+        const next = await iterator.next();
+        if (next.done) {
+          finish();
+          return generationErrorResponse(new Error("No summary text"), requestSignal);
+        }
+        if (!isSummaryStreamPart(next.value)) continue;
+        if (next.value.type === "error") {
+          finish();
+          return generationErrorResponse(next.value.error, requestSignal);
+        }
+        if (next.value.type === "text-delta" && next.value.text) {
+          buffered.push(next.value.text);
+          break;
+        }
+      }
     } catch (error) {
       finish();
       return generationErrorResponse(error, requestSignal);
@@ -182,17 +211,28 @@ export async function createSummaryResponse(
     const stream = new ReadableStream<Uint8Array>({
       async start(controller) {
         try {
-          if (!first.done && first.value) {
-            controller.enqueue(encoder.encode(first.value));
+          for (const chunk of buffered) {
+            controller.enqueue(encoder.encode(chunk));
           }
           while (true) {
             const next = await iterator.next();
             if (next.done) break;
-            if (next.value) controller.enqueue(encoder.encode(next.value));
+            if (!isSummaryStreamPart(next.value)) continue;
+            if (next.value.type === "error") {
+              controller.error(
+                next.value.error instanceof Error
+                  ? next.value.error
+                  : new Error("Summary stream failed")
+              );
+              return;
+            }
+            if (next.value.type === "text-delta" && next.value.text) {
+              controller.enqueue(encoder.encode(next.value.text));
+            }
           }
           controller.close();
         } catch (error) {
-          controller.error(error);
+          controller.error(error instanceof Error ? error : new Error("Summary stream failed"));
         } finally {
           finish();
         }

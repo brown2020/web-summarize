@@ -29,6 +29,8 @@ No confirmed open bug in the current `dev` tree. `npm run lint`, `npm run typech
 
 No open GitHub issues and no open pull requests.
 
+- `POST /api/summarize` is public. The only control is the per-IP in-memory rate limit. Auth behavior is unchanged on purpose.
+
 ## Deployment
 
-Vercel project linked Oct 28, 2026 (team `ignitechannel`, project `web-summarize`). Dev previews are at `web-summarize-git-dev-ignitechannel.vercel.app`. Live summaries need at least one AI key, `OPENAI_API_KEY` by default, set in Vercel. That key is not set yet.
+Vercel project linked Oct 28, 2026 (team `ignitechannel`, project `web-summarize`). Dev previews are at `web-summarize-git-dev-ignitechannel.vercel.app`. Live summaries need at least one AI key, `OPENAI_API_KEY` by default, set in Vercel. Provider keys are set on the dev preview.
