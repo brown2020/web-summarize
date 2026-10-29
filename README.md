@@ -65,7 +65,7 @@ roadmap.md
 
 ### Prerequisites
 
-- Node.js 22 (CI uses 22)
+- Node.js 24 (CI uses 24)
 - npm
 - At least one provider API key for live summarization. Fixture mode does not need keys
 

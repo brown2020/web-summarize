@@ -9,7 +9,7 @@ Punchlist after the 28 Oct 2026 maintenance pass on `dev`. No open GitHub issues
 3. Replace `'unsafe-inline'` in the Content-Security-Policy when the app can serve Next.js scripts with nonces or hashes. Production already omits `'unsafe-eval'`.
 4. Remove the TypeScript 6 API alias after typescript-eslint supports the TypeScript 7 API. Until then, `typescript` must stay on `@typescript/typescript6`, and `@typescript/native` supplies `tsc` 7. ESLint fails if the root `typescript` package is 7.
 5. Add an optional live provider smoke check outside the default CI gate. The gate uses `SUMMARIZE_USE_FIXTURES=true` so it does not call providers or spend credits.
-6. Keep CI on Node.js 22 until a runtime bump is requested. `@types/node` is on the 26 line and is ahead of that runtime. Do not bump the CI Node version as a drive-by.
+6. CI runs on Node.js 24. `@types/node` stays on the 26 line and is ahead of that runtime.
 7. Keep catalog model IDs unchanged unless a provider retires one. DeepSeek is not a catalog model. Adding it is a product change, not a dependency bump.
 
 ## Known limitations
