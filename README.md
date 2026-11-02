@@ -24,15 +24,15 @@ No Stripe. Accounts are Firebase Auth only.
 | Layer | Choice |
 | --- | --- |
 | Framework | Next.js `^16.4.3` (App Router; `dev` uses Turbopack) |
-| UI | React `^19.3.1`, Tailwind CSS `^4.3.3`, Radix primitives, Lucide, react-hot-toast |
+| UI | React `^19.3.1`, Tailwind CSS `^4.3.3`, Radix primitives, Lucide `^1.66.0`, react-hot-toast |
 | Language | TypeScript 7.0 CLI (`@typescript/native`) with the TypeScript 6.0 API (`typescript` aliased to `@typescript/typescript6`) so ESLint can load |
 | Scraping | axios `^1.21.0`, cheerio `^1.2.0` |
-| AI | Vercel AI SDK (`ai` `^7.0.156`, `@ai-sdk/openai`, `@ai-sdk/anthropic`, `@ai-sdk/google`, `@ai-sdk/mistral`) |
+| AI | Vercel AI SDK (`ai` `^7.0.159`, `@ai-sdk/openai`, `@ai-sdk/anthropic`, `@ai-sdk/google`, `@ai-sdk/mistral`) |
 | Validation | Zod `^4.6.7` |
 | State | Zustand `^5.0.16` |
 | Auth | Firebase Auth (`firebase`) — email/password and Google |
-| Tests | Vitest `^5.0.5` on Vite `^8.3.5` |
-| Lint | ESLint `^10.13.0` + `eslint-config-next` |
+| Tests | Vitest `^5.0.5` on Vite `^8.3.5` (happy-dom `^21.0.4` for the client flow) |
+| Lint | ESLint `^10.14.0` + `eslint-config-next` |
 
 `npm run typecheck` runs TypeScript 7 (`tsc`). ESLint and Next's programmatic checker import the TypeScript 6 API package. Installing only `typescript@7` breaks `npm run lint` until typescript-eslint supports the TypeScript 7 API.
 
@@ -135,7 +135,7 @@ CI (`.github/workflows/ci.yml`) runs on pushes to `dev` and `main`, and on pull 
 4. `npm test` with `SUMMARIZE_USE_FIXTURES=true`
 5. `npm run build` with `SUMMARIZE_USE_FIXTURES=true`
 
-Tests cover URL validation, private-network checks, model availability, fixtures, client IP selection, the in-memory rate limiter, the proxy route, and the summarize route.
+Tests cover URL validation, private-network checks, model availability, fixtures, client IP selection, the in-memory rate limiter, the proxy route, the summarize route, and the client scrape-then-summarize flow.
 
 ## Deployment
 
