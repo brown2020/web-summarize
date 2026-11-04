@@ -23,18 +23,18 @@ No Stripe. Accounts are Firebase Auth only.
 
 | Layer | Choice |
 | --- | --- |
-| Framework | Next.js `^16.4.3` (App Router; `dev` uses Turbopack) |
-| UI | React `^19.3.1`, Tailwind CSS `^4.3.3`, Radix primitives, Lucide `^1.66.0`, react-hot-toast |
-| Language | TypeScript 7.0 CLI (`@typescript/native`) with the TypeScript 6.0 API (`typescript` aliased to `@typescript/typescript6`) so ESLint can load |
+| Framework | Next.js `^16.4.5` (App Router; `dev` uses Turbopack) |
+| UI | React `^19.3.1`, Tailwind CSS `^4.3.4`, Radix primitives, Lucide `^1.68.0`, react-hot-toast |
+| Language | TypeScript `6.0.3` (`tsc` and the compiler API). TypeScript 7 is not used; it has no compiler API, so ESLint cannot load it |
 | Scraping | axios `^1.21.0`, cheerio `^1.2.0` |
-| AI | Vercel AI SDK (`ai` `^7.0.159`, `@ai-sdk/openai`, `@ai-sdk/anthropic`, `@ai-sdk/google`, `@ai-sdk/mistral`) |
+| AI | Vercel AI SDK (`ai` `^7.0.162`, `@ai-sdk/openai`, `@ai-sdk/anthropic`, `@ai-sdk/google`, `@ai-sdk/mistral`) |
 | Validation | Zod `^4.6.7` |
 | State | Zustand `^5.0.16` |
 | Auth | Firebase Auth (`firebase`) — email/password and Google |
-| Tests | Vitest `^5.0.5` on Vite `^8.3.5` (happy-dom `^21.0.4` for the client flow) |
+| Tests | Vitest `^5.1.0` on Vite `^8.3.5` (happy-dom `^21.0.4` for the client flow) |
 | Lint | ESLint `^10.14.0` + `eslint-config-next` |
 
-`npm run typecheck` runs TypeScript 7 (`tsc`). ESLint and Next's programmatic checker import the TypeScript 6 API package. Installing only `typescript@7` breaks `npm run lint` until typescript-eslint supports the TypeScript 7 API.
+`npm run typecheck` runs TypeScript 6.0.3 (`tsc`). That package also supplies the compiler API ESLint loads. `@types/node` stays on the 24 line to match the Node.js 24 runtime.
 
 ## Project structure
 
@@ -121,7 +121,7 @@ SUMMARIZE_USE_FIXTURES=true npm run build
 | `npm run build` | Production build |
 | `npm start` | Serve the production build |
 | `npm run lint` | ESLint |
-| `npm run typecheck` | TypeScript 7 `tsc --noEmit` |
+| `npm run typecheck` | TypeScript 6.0.3 `tsc --noEmit` |
 | `npm test` | Vitest |
 | `npm run test:watch` | Vitest watch mode |
 

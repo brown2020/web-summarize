@@ -1,19 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SignInForm } from "@/components/SignInForm";
 import { useAuthUser } from "@/hooks/useAuthUser";
 
 export default function SignInPage() {
   const user = useAuthUser();
-  const router = useRouter();
 
-  useEffect(() => {
-    if (user) router.replace("/");
-  }, [router, user]);
+  if (user) redirect("/");
+
+  if (user === undefined) {
+    return (
+      <main className="container max-w-lg mx-auto py-16 px-4">
+        <p className="text-muted-foreground">Checking sign-in…</p>
+      </main>
+    );
+  }
 
   return (
     <main className="container max-w-lg mx-auto py-16 px-4">

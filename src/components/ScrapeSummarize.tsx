@@ -18,11 +18,22 @@ type ScrapeSummarizeProps = {
   modelOptions: ModelOption[];
 };
 
+function summaryParagraphs(summary: string): { id: string; text: string }[] {
+  const items: { id: string; text: string }[] = [];
+  const pattern = /\n\s*\n/g;
+  let start = 0;
+  for (const match of summary.matchAll(pattern)) {
+    const text = summary.slice(start, match.index).trim();
+    if (text) items.push({ id: `p${start}`, text });
+    start = match.index + match[0].length;
+  }
+  const tail = summary.slice(start).trim();
+  if (tail) items.push({ id: `p${start}`, text: tail });
+  return items;
+}
+
 function SummaryContent({ summary }: { summary: string }) {
-  const paragraphs = useMemo(
-    () => summary.split(/\n\s*\n/).map((paragraph) => paragraph.trim()).filter(Boolean),
-    [summary]
-  );
+  const paragraphs = useMemo(() => summaryParagraphs(summary), [summary]);
 
   if (!paragraphs.length) {
     return <p className="whitespace-pre-wrap leading-7">{summary}</p>;
@@ -30,9 +41,9 @@ function SummaryContent({ summary }: { summary: string }) {
 
   return (
     <div className="space-y-4">
-      {paragraphs.map((paragraph, index) => (
-        <p key={index} className="leading-7">
-          {paragraph}
+      {paragraphs.map((paragraph) => (
+        <p key={paragraph.id} className="leading-7">
+          {paragraph.text}
         </p>
       ))}
     </div>
