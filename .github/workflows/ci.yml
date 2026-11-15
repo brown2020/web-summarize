@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     # Provider API keys are optional for this gate.
     # Build and tests use SUMMARIZE_USE_FIXTURES=true so paid LLM credits are not burned.
-    # Never inline OPENAI_*/ANTHROPIC_*/GOOGLE_*/MISTRAL_*/FIREWORKS_*/NEXT_PUBLIC_* here —
+    # Never inline OPENAI_*/ANTHROPIC_*/GOOGLE_*/XAI_*/NEXT_PUBLIC_* here —
     # if a future smoke job needs secrets, inject only via ${{ secrets.* }} on that job
     # (not this gate), and keep deferred provider client init in generateActions.
     steps:

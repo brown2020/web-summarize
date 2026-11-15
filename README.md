@@ -1,12 +1,12 @@
 # Web Summarize
 
-Enter a public webpage URL and get a streamed AI summary in a chosen language and length. The app fetches and extracts HTML on the server (`POST /api/proxy`), then summarizes through `POST /api/summarize` with the Vercel AI SDK. Providers are OpenAI, Anthropic, Google, Mistral, and Fireworks. Model IDs are fixed in the catalog and are not selected from the environment.
+Enter a public webpage URL and get a streamed AI summary in a chosen language and length. The app fetches and extracts HTML on the server (`POST /api/proxy`), then summarizes through `POST /api/summarize` with the Vercel AI SDK. Providers are OpenAI, Anthropic, Google, and xAI. Model IDs are fixed in the catalog and are not selected from the environment.
 
 ## Features
 
 - **URL scrape + extract** — server-side fetch with Cheerio; a missing protocol is normalized to `https://`
 - **SSRF protections** — URL validation, private and special-use IP blocking (including IPv4 embedded in 6to4, NAT64, and Teredo), DNS pinning, `proxy: false`, bounded redirects, HTML content-type and size limits
-- **Multi-model summaries** — GPT-4.1, Claude Sonnet 4.5, Gemini 2.5 Flash, Mistral Large, Llama 3.3 70B (Fireworks). The selector lists only models whose provider key is set
+- **Multi-model summaries** — GPT-6.1 Sol (default), Claude Opus 5.5, Gemini 4 Argon, Grok 4.7. The selector lists only models whose provider key is set. Shared links with retired model ids open on the same provider's current model
 - **10 languages** — English, French, Spanish, German, Italian, Portuguese, Chinese, Russian, Hindi, Japanese
 - **Target length** — about 10–300 words
 - **Streaming UI** — progress for fetch, extract, AI, and done. Cancel aborts the summary request. Retry and regenerate are available, including regenerate from edited extracted text
@@ -27,7 +27,7 @@ No Stripe. Accounts are Firebase Auth only.
 | UI | React `^19.3.1`, Tailwind CSS `^4.3.4`, Radix primitives, Lucide `^1.68.0`, react-hot-toast |
 | Language | TypeScript `6.0.3` (`tsc` and the compiler API). TypeScript 7 is not used; it has no compiler API, so ESLint cannot load it |
 | Scraping | axios `^1.21.0`, cheerio `^1.2.0` |
-| AI | Vercel AI SDK (`ai` `^7.0.162`, `@ai-sdk/openai`, `@ai-sdk/anthropic`, `@ai-sdk/google`, `@ai-sdk/mistral`) |
+| AI | Vercel AI SDK (`ai` `^7.0.162`, `@ai-sdk/openai`, `@ai-sdk/anthropic`, `@ai-sdk/google`, `@ai-sdk/xai`) |
 | Validation | Zod `^4.6.7` |
 | State | Zustand `^5.0.16` |
 | Auth | Firebase Auth (`firebase`) — email/password and Google |
@@ -83,11 +83,10 @@ Copy `.env.example` to `.env.local`. Never commit real keys. Names only:
 
 | Name | Purpose |
 | --- | --- |
-| `OPENAI_API_KEY` | GPT-4.1. [OpenAI API keys](https://platform.openai.com/api-keys) |
-| `ANTHROPIC_API_KEY` | Claude Sonnet 4.5. [Anthropic Console](https://console.anthropic.com/) |
-| `GOOGLE_GENERATIVE_AI_API_KEY` | Gemini 2.5 Flash. [Google AI Studio](https://aistudio.google.com/apikey) |
-| `MISTRAL_API_KEY` | Mistral Large. [Mistral Console](https://console.mistral.ai/) |
-| `FIREWORKS_API_KEY` | Llama 3.3 70B via Fireworks. [Fireworks](https://fireworks.ai/) |
+| `OPENAI_API_KEY` | GPT-6.1 Sol (default). [OpenAI API keys](https://platform.openai.com/api-keys) |
+| `ANTHROPIC_API_KEY` | Claude Opus 5.5. [Anthropic Console](https://console.anthropic.com/) |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | Gemini 4 Argon. [Google AI Studio](https://aistudio.google.com/apikey) |
+| `XAI_API_KEY` | Grok 4.7. [xAI Console](https://console.x.ai/) |
 | `SUMMARIZE_USE_FIXTURES` | Set to `true` to return labeled fixtures from the proxy and summarize routes |
 | `NEXT_PUBLIC_FIREBASE_APIKEY` | Firebase web API key |
 | `NEXT_PUBLIC_FIREBASE_AUTHDOMAIN` | Firebase auth domain |
@@ -135,7 +134,7 @@ CI (`.github/workflows/ci.yml`) runs on pushes to `dev` and `main`, and on pull 
 4. `npm test` with `SUMMARIZE_USE_FIXTURES=true`
 5. `npm run build` with `SUMMARIZE_USE_FIXTURES=true`
 
-Tests cover URL validation, private-network checks, model availability, fixtures, client IP selection, the in-memory rate limiter, the proxy route, the summarize route, and the client scrape-then-summarize flow.
+Tests cover URL validation, private-network checks, the model catalog and retired-id successors, model availability, fixtures, client IP selection, the in-memory rate limiter, the proxy route, the summarize route, and the client scrape-then-summarize flow.
 
 ## Deployment
 

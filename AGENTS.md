@@ -28,10 +28,9 @@ Use `.env.example` as the public reference for required keys. Do not read, print
 - `OPENAI_API_KEY`
 - `ANTHROPIC_API_KEY`
 - `GOOGLE_GENERATIVE_AI_API_KEY`
-- `MISTRAL_API_KEY`
-- `FIREWORKS_API_KEY`
+- `XAI_API_KEY`
 
-Model availability is intentionally filtered in `src/lib/model-availability.ts` from configured environment keys.
+Model availability is intentionally filtered in `src/lib/model-availability.ts` from configured environment keys. Retired model ids resolve to successors in `src/lib/model-ids.ts`.
 
 ## Code Boundaries
 

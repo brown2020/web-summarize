@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Web-Summarize is a Next.js 16 application that scrapes web pages and generates AI-powered summaries using multiple LLM providers (OpenAI, Anthropic, Google, Mistral, Fireworks/Llama). It features server-side content extraction, streaming AI responses, and a clean React UI.
+Web-Summarize is a Next.js 16 application that scrapes web pages and generates AI-powered summaries using multiple LLM providers (OpenAI, Anthropic, Google, xAI). It features server-side content extraction, streaming AI responses, and a clean React UI.
 
 ## Commands
 
@@ -41,6 +41,7 @@ src/
 │   └── useSummarizer.ts    # Scraping and summarization workflow
 ├── lib/                     # Utilities
 │   ├── utils.ts            # Helper functions (cn, capitalize, clampNumber)
+│   ├── model-ids.ts        # Current model ids and retired-id successor map
 │   └── model-availability.ts # Environment-based model filtering
 ├── store/                   # State management
 │   └── summarizerStore.ts  # Zustand store
@@ -75,11 +76,10 @@ Display summary with export options
 ## Environment Variables
 
 Required API keys (at least one needed):
-- `OPENAI_API_KEY` - For GPT-4.1 (default model)
-- `ANTHROPIC_API_KEY` - For Claude Sonnet 4.5
-- `GOOGLE_GENERATIVE_AI_API_KEY` - For Gemini 2.5 Flash
-- `MISTRAL_API_KEY` - For Mistral Large
-- `FIREWORKS_API_KEY` - For Llama 3.3 70B
+- `OPENAI_API_KEY` - For GPT-6.1 Sol (default model)
+- `ANTHROPIC_API_KEY` - For Claude Opus 5.5
+- `GOOGLE_GENERATIVE_AI_API_KEY` - For Gemini 4 Argon
+- `XAI_API_KEY` - For Grok 4.7
 
 See `.env.example` for reference.
 
