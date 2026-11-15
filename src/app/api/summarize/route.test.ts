@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
-import { RATE_LIMITS } from "@/constants/app";
+import { AI_ROUTE_MAX_DURATION_SECONDS, RATE_LIMITS, TIMEOUTS } from "@/constants/app";
+import { SUMMARY_CUTOFF_NOTICE } from "@/actions/generateActions";
 import { summaryLimiter, summaryUserLimiter } from "@/lib/limiters";
-import { POST } from "./route";
+import { POST, maxDuration } from "./route";
 
 const { streamText, verifyFirebaseIdToken } = vi.hoisted(() => ({
   streamText: vi.fn(),
@@ -65,6 +66,7 @@ describe("POST /api/summarize", () => {
 
   type StreamCall = {
     model?: { modelId?: string; provider?: string };
+    providerOptions?: Record<string, Record<string, unknown>>;
     temperature?: number;
     topP?: number;
     topK?: number;
@@ -331,6 +333,7 @@ describe("POST /api/summarize", () => {
     const call = await liveCall("gpt-6.1-sol");
     expect(call.model?.modelId).toBe("gpt-6.1-sol");
     expect(call.model?.provider).toBe("openai.responses");
+    expect(call.providerOptions).toBeUndefined();
     expect(call.temperature).toBeUndefined();
   });
 
@@ -339,6 +342,7 @@ describe("POST /api/summarize", () => {
     const call = await liveCall("claude-opus-5-5");
     expect(call.model?.modelId).toBe("claude-opus-5-5");
     expect(call.model?.provider).toMatch(/^anthropic/);
+    expect(call.providerOptions).toBeUndefined();
     expect(call).not.toHaveProperty("temperature");
     expect(call).not.toHaveProperty("topP");
     expect(call).not.toHaveProperty("topK");
@@ -349,6 +353,7 @@ describe("POST /api/summarize", () => {
     const call = await liveCall("gemini-4-argon");
     expect(call.model?.modelId).toBe("gemini-4-argon");
     expect(call.model?.provider).toMatch(/^google/);
+    expect(call.providerOptions).toBeUndefined();
     expect(call.temperature).toBe(0.7);
   });
 
@@ -357,6 +362,7 @@ describe("POST /api/summarize", () => {
     const call = await liveCall("grok-4.7");
     expect(call.model?.modelId).toBe("grok-4.7");
     expect(call.model?.provider).toBe("xai.responses");
+    expect(call.providerOptions).toEqual({ xai: { reasoningEffort: "low" } });
     expect(call).not.toHaveProperty("presencePenalty");
     expect(call).not.toHaveProperty("frequencyPenalty");
     expect(call).not.toHaveProperty("stopSequences");
@@ -382,5 +388,106 @@ describe("POST /api/summarize", () => {
     const body = await res.json();
     expect(String(body.error)).toMatch(/not configured/i);
     expect(streamText).not.toHaveBeenCalled();
+  });
+
+  describe("generation deadline", () => {
+    let deadline: AbortController;
+
+    beforeEach(() => {
+      delete process.env.SUMMARIZE_USE_FIXTURES;
+      process.env.OPENAI_API_KEY = "test-key";
+      deadline = new AbortController();
+      vi.spyOn(AbortSignal, "timeout").mockImplementation(() => deadline.signal);
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    const never = () => new Promise<never>(() => {});
+
+    async function expectSlotsFreed() {
+      const limit = Math.max(
+        RATE_LIMITS.SUMMARY.maxConcurrent,
+        RATE_LIMITS.SUMMARY_USER.maxConcurrent
+      );
+      for (let i = 0; i <= limit; i += 1) {
+        deadline = new AbortController();
+        streamOnce("ok");
+        const res = await POST(postSummary(summaryBody));
+        expect(res.status).toBe(200);
+        expect(await res.text()).toBe("ok");
+      }
+    }
+
+    it("keeps the AI route limit at 60s with a deadline at least 5s under it", () => {
+      expect(maxDuration).toBe(60);
+      expect(maxDuration).toBe(AI_ROUTE_MAX_DURATION_SECONDS);
+      expect(TIMEOUTS.AI_GENERATION).toBeLessThanOrEqual((maxDuration - 5) * 1000);
+    });
+
+    it("starts the deadline at route entry and passes it to the provider call", async () => {
+      streamOnce("ok");
+      const res = await POST(postSummary(summaryBody));
+      expect(await res.text()).toBe("ok");
+      expect(AbortSignal.timeout).toHaveBeenCalledWith(TIMEOUTS.AI_GENERATION);
+
+      const call = streamText.mock.calls[0]?.[0] as { abortSignal: AbortSignal };
+      expect(call.abortSignal.aborted).toBe(false);
+      deadline.abort();
+      expect(call.abortSignal.aborted).toBe(true);
+    });
+
+    it("returns 504 and frees rate-limit slots when the deadline hits before any text", async () => {
+      for (let i = 0; i < 3; i += 1) {
+        deadline = new AbortController();
+        const current = deadline;
+        streamText.mockImplementation(() => ({
+          fullStream: (async function* () {
+            current.abort();
+            yield* [] as never[];
+            await never();
+          })(),
+        }));
+        const res = await POST(postSummary(summaryBody));
+        expect(res.status).toBe(504);
+        expect((await res.json()).error).toBe("AI generation timed out. Please try again.");
+      }
+      await expectSlotsFreed();
+    });
+
+    it("ends a reply cut off mid-stream cleanly and frees rate-limit slots", async () => {
+      for (let i = 0; i < 3; i += 1) {
+        deadline = new AbortController();
+        const current = deadline;
+        streamText.mockImplementation(() => ({
+          fullStream: (async function* () {
+            yield { type: "text-delta", text: "Partial summary" };
+            current.abort();
+            await never();
+          })(),
+        }));
+        const res = await POST(postSummary(summaryBody));
+        expect(res.status).toBe(200);
+        expect(await res.text()).toBe(`Partial summary${SUMMARY_CUTOFF_NOTICE}`);
+      }
+      await expectSlotsFreed();
+    });
+
+    it("does not add the cut-off notice when the client cancels mid-stream", async () => {
+      const client = new AbortController();
+      streamText.mockImplementation(() => ({
+        fullStream: (async function* () {
+          yield { type: "text-delta", text: "Partial summary" };
+          client.abort();
+          yield { type: "abort" };
+        })(),
+      }));
+      const res = await POST(postSummary(summaryBody, { signal: client.signal }));
+      expect(res.status).toBe(200);
+      expect(await res.text()).toBe("Partial summary");
+      expect(deadline.signal.aborted).toBe(false);
+      await expectSlotsFreed();
+    });
   });
 });

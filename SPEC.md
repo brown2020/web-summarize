@@ -25,7 +25,7 @@ Web Summarize is a Next.js application that accepts a public webpage URL, extrac
 3. `src/app/api/proxy/route.ts` accepts POST only. It validates the URL, applies the per-instance proxy limit, resolves DNS with a pinned lookup, blocks private targets, refuses environment proxies, follows at most five redirects with the same checks, accepts only `text/html`, caps the body at 1 MB, and extracts text with Cheerio. Extracted text is capped at 50,000 characters and must be at least 50 characters.
 4. The hook posts the extracted document to `/api/summarize` with the caller's abort signal and `Authorization: Bearer` Firebase ID token.
 5. `src/app/api/summarize/route.ts` applies the per-IP summary limit, verifies the ID token on the server, applies the per-user limit, and calls `createSummaryResponse` in `src/actions/generateActions.ts`. A missing or invalid token returns 401.
-6. Generation validates the body with Zod, checks that the model is in the catalog and configured, and streams text. Temperature 0.7 is sent only where the model accepts it: GPT-6.1 Sol and Claude Opus 5.5 get no temperature, top_p, or top_k, and Grok 4.7 gets no presence/frequency penalty or stop sequences. The provider call uses `AbortSignal.any` of the request signal and a 60 second timeout. Fetch timeout is 10 seconds.
+6. Generation validates the body with Zod, checks that the model is in the catalog and configured, and streams text. Temperature 0.7 is sent only where the model accepts it: GPT-6.1 Sol and Claude Opus 5.5 get no temperature, top_p, or top_k, and Grok 4.7 gets no presence/frequency penalty or stop sequences. Grok 4.7 runs with xAI `reasoningEffort: "low"` to stay inside the route limit. `/api/summarize` exports `maxDuration = 60`. A 55 second deadline starts at route entry, 5 seconds under that limit, and the provider call uses `AbortSignal.any` of the request signal and that deadline. Fetch timeout is 10 seconds.
 7. `src/store/summarizerStore.ts` holds the form, extracted text, summary, progress, pending flag, and error.
 
 `generateActions.ts` is not a server action. Provider keys stay on the server. The xAI client is created when Grok is selected, from `process.env.XAI_API_KEY`. GPT-6.1 Sol and Grok 4.7 use their providers' Responses APIs.
@@ -54,7 +54,7 @@ The client key prefers `x-real-ip`. Otherwise it uses the rightmost `x-forwarded
 ## Security responses
 
 - Private or disallowed targets return a fixed client message. Unexpected proxy and provider failures do not return the underlying error text.
-- Summary timeout returns a timeout message. A cancelled request returns "Request cancelled."
+- Summary timeout before any text returns 504 with a timeout message. A reply still streaming at the deadline stops, ends with a short cut-off notice, and closes cleanly. Every outcome releases the rate-limit in-flight slots. A cancelled request returns "Request cancelled."
 - Every route sends a Content-Security-Policy (`script-src` and `style-src` allow `'unsafe-inline'`; `'unsafe-eval'` is added only when `NODE_ENV` is `development`; Google sign-in may load `apis.google.com` and `gstatic.com`, and may frame `accounts.google.com` plus Firebase auth domains), `X-Content-Type-Options: nosniff`, and `X-Frame-Options: DENY`.
 
 ## Stack as built

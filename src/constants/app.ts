@@ -11,10 +11,17 @@ export const PROGRESS_STEPS = {
   COMPLETE: 100,
 } as const;
 
+/** Vercel function limit for AI routes. Route files must export this as a literal `maxDuration`. */
+export const AI_ROUTE_MAX_DURATION_SECONDS = 60;
+
+/** Headroom so a slow reply ends cleanly before the platform kills the function. */
+export const AI_DEADLINE_MARGIN_MS = 5_000;
+
 // Request timeout constants
 export const TIMEOUTS = {
   URL_FETCH: 10000, // 10 seconds
-  AI_GENERATION: 60000, // 60 seconds
+  /** Measured from route entry. */
+  AI_GENERATION: AI_ROUTE_MAX_DURATION_SECONDS * 1000 - AI_DEADLINE_MARGIN_MS,
 } as const;
 
 // Validation constants (single source of truth for numWords validation)

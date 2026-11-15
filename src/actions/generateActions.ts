@@ -2,7 +2,7 @@ import { type CallSettings, ModelMessage, streamText } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { google } from "@ai-sdk/google";
 import { anthropic } from "@ai-sdk/anthropic";
-import { createXai } from "@ai-sdk/xai";
+import { createXai, type XaiLanguageModelResponsesOptions } from "@ai-sdk/xai";
 import { z } from "zod";
 import { LanguageSchema, type ModelId } from "@/types/summarizer";
 import { TIMEOUTS, VALIDATION } from "@/constants/app";
@@ -47,6 +47,15 @@ function samplingSettingsFor(
   ) as SamplingSettings;
 }
 
+type SummaryProviderOptions = Parameters<typeof streamText>[0]["providerOptions"];
+
+/** Grok 4.7 defaults to high reasoning, which is too slow for the AI route's time limit. */
+const PROVIDER_OPTIONS: Partial<Record<ModelId, SummaryProviderOptions>> = {
+  "grok-4.7": {
+    xai: { reasoningEffort: "low" } satisfies XaiLanguageModelResponsesOptions,
+  },
+};
+
 const GenerateSummarySchema = z.object({
   document: z
     .string()
@@ -85,8 +94,13 @@ function getModel(modelId: ModelId) {
   }
 }
 
-export function isGenerationTimeout(error: unknown, requestSignal: AbortSignal): boolean {
+export function isGenerationTimeout(
+  error: unknown,
+  requestSignal: AbortSignal,
+  deadline: AbortSignal
+): boolean {
   if (requestSignal.aborted) return false;
+  if (deadline.aborted) return true;
   return (
     error instanceof Error &&
     (error.name === "AbortError" || error.name === "TimeoutError")
@@ -94,12 +108,16 @@ export function isGenerationTimeout(error: unknown, requestSignal: AbortSignal):
 }
 
 /** Client-facing failure. Provider response text stays on the server. */
-export function generationErrorResponse(error: unknown, requestSignal: AbortSignal): Response {
+export function generationErrorResponse(
+  error: unknown,
+  requestSignal: AbortSignal,
+  deadline: AbortSignal
+): Response {
   if (requestSignal.aborted) {
     return jsonError("Request cancelled.", 499);
   }
 
-  if (isGenerationTimeout(error, requestSignal)) {
+  if (isGenerationTimeout(error, requestSignal, deadline)) {
     return jsonError("AI generation timed out. Please try again.", 504);
   }
 
@@ -140,21 +158,57 @@ function isSummaryStreamPart(value: unknown): value is SummaryStreamPart {
   return typeof value === "object" && value !== null && "type" in value;
 }
 
+/** Appended when the deadline cuts a reply short, so the stream still ends cleanly. */
+export const SUMMARY_CUTOFF_NOTICE =
+  "\n\n[Summary stopped at the time limit. Try again or ask for fewer words.]";
+
+const DEADLINE_REACHED = Symbol("deadline");
+
+/** Resolves with the next part, or DEADLINE_REACHED if the deadline fires first. */
+function nextBeforeDeadline<T>(
+  iterator: AsyncIterator<T>,
+  deadline: AbortSignal
+): Promise<IteratorResult<T> | typeof DEADLINE_REACHED> {
+  if (deadline.aborted) return Promise.resolve(DEADLINE_REACHED);
+  return new Promise((resolve, reject) => {
+    const onDeadline = () => resolve(DEADLINE_REACHED);
+    deadline.addEventListener("abort", onDeadline, { once: true });
+    iterator.next().then(
+      (result) => {
+        deadline.removeEventListener("abort", onDeadline);
+        resolve(result);
+      },
+      (error: unknown) => {
+        deadline.removeEventListener("abort", onDeadline);
+        reject(error);
+      }
+    );
+  });
+}
+
 /**
  * Validates the summary request and returns a text body.
- * `release` runs when generation finishes or fails so in-flight caps can drop.
+ * `release` runs exactly once when generation finishes, fails, is cancelled, or hits
+ * `deadline`, so in-flight caps never stay reserved.
  * The returned stream follows `requestSignal`, which aborts provider work when the client disconnects.
+ * `deadline` should start at route entry; a reply still streaming when it fires ends with
+ * SUMMARY_CUTOFF_NOTICE instead of being killed by the platform.
  */
 export async function createSummaryResponse(
   body: unknown,
   requestSignal: AbortSignal,
-  release: () => void
+  release: () => void,
+  deadline: AbortSignal = AbortSignal.timeout(TIMEOUTS.AI_GENERATION)
 ): Promise<Response> {
   let released = false;
   const finish = () => {
     if (released) return;
     released = true;
     release();
+  };
+  const failure = (error: unknown) => {
+    finish();
+    return generationErrorResponse(error, requestSignal, deadline);
   };
 
   try {
@@ -194,55 +248,66 @@ export async function createSummaryResponse(
       });
     }
 
-    const abortSignal = AbortSignal.any([
-      requestSignal,
-      AbortSignal.timeout(TIMEOUTS.AI_GENERATION),
-    ]);
+    if (deadline.aborted) {
+      return failure(new Error("Deadline reached before generation"));
+    }
+
+    const abortSignal = AbortSignal.any([requestSignal, deadline]);
     const prompt = summaryPrompt(document, language, numWords);
     const result = streamText({
       model: getModel(modelId),
       system: prompt.system,
       messages: prompt.messages,
       ...samplingSettingsFor(modelId),
+      providerOptions: PROVIDER_OPTIONS[modelId],
       abortSignal,
     });
 
     const iterator = result.fullStream[Symbol.asyncIterator]();
+    const stopProvider = () => {
+      void iterator.return?.(undefined)?.catch(() => undefined);
+    };
     const buffered: string[] = [];
     try {
       while (true) {
-        const next = await iterator.next();
-        if (next.done) {
-          finish();
-          return generationErrorResponse(new Error("No summary text"), requestSignal);
+        const next = await nextBeforeDeadline(iterator, deadline);
+        if (next === DEADLINE_REACHED) {
+          stopProvider();
+          return failure(new Error("Deadline reached before first text"));
         }
+        if (next.done) return failure(new Error("No summary text"));
         if (!isSummaryStreamPart(next.value)) continue;
-        if (next.value.type === "error") {
-          finish();
-          return generationErrorResponse(next.value.error, requestSignal);
-        }
+        if (next.value.type === "error") return failure(next.value.error);
+        if (next.value.type === "abort") return failure(new Error("Generation aborted"));
         if (next.value.type === "text-delta" && next.value.text) {
           buffered.push(next.value.text);
           break;
         }
       }
     } catch (error) {
-      finish();
-      return generationErrorResponse(error, requestSignal);
+      return failure(error);
     }
 
     const encoder = new TextEncoder();
     const stream = new ReadableStream<Uint8Array>({
       async start(controller) {
+        const endAtDeadline = () => {
+          stopProvider();
+          controller.enqueue(encoder.encode(SUMMARY_CUTOFF_NOTICE));
+          controller.close();
+        };
         try {
           for (const chunk of buffered) {
             controller.enqueue(encoder.encode(chunk));
           }
           while (true) {
-            const next = await iterator.next();
+            const next = await nextBeforeDeadline(iterator, deadline);
+            if (next === DEADLINE_REACHED) return endAtDeadline();
             if (next.done) break;
             if (!isSummaryStreamPart(next.value)) continue;
-            if (next.value.type === "error") {
+            if (next.value.type === "abort" || next.value.type === "error") {
+              if (deadline.aborted && !requestSignal.aborted) return endAtDeadline();
+              if (next.value.type === "abort") break;
               controller.error(
                 next.value.error instanceof Error
                   ? next.value.error
@@ -256,6 +321,7 @@ export async function createSummaryResponse(
           }
           controller.close();
         } catch (error) {
+          if (deadline.aborted && !requestSignal.aborted) return endAtDeadline();
           controller.error(error instanceof Error ? error : new Error("Summary stream failed"));
         } finally {
           finish();
@@ -263,7 +329,7 @@ export async function createSummaryResponse(
       },
       cancel() {
         finish();
-        void iterator.return?.(undefined);
+        stopProvider();
       },
     });
 
@@ -275,7 +341,6 @@ export async function createSummaryResponse(
       },
     });
   } catch (error) {
-    finish();
-    return generationErrorResponse(error, requestSignal);
+    return failure(error);
   }
 }

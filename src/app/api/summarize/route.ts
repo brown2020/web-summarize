@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSummaryResponse } from "@/actions/generateActions";
+import { TIMEOUTS } from "@/constants/app";
 import { requireSummaryUser } from "@/lib/auth/require-user";
 import { getClientIp } from "@/lib/client-ip";
 import { summaryLimiter, summaryUserLimiter } from "@/lib/limiters";
 
 export const dynamic = "force-dynamic";
+/** Must stay a literal for Next.js static analysis; equals AI_ROUTE_MAX_DURATION_SECONDS. */
+export const maxDuration = 60;
 
 function jsonError(message: string, status: number, retryAfterSeconds?: number) {
   const headers = new Headers();
@@ -16,6 +19,7 @@ function jsonError(message: string, status: number, retryAfterSeconds?: number) 
 }
 
 export async function POST(req: NextRequest) {
+  const deadline = AbortSignal.timeout(TIMEOUTS.AI_GENERATION);
   const ipDecision = summaryLimiter.tryAcquire(`summary:${getClientIp(req.headers)}`);
   if (!ipDecision.ok) {
     return jsonError(
@@ -57,5 +61,5 @@ export async function POST(req: NextRequest) {
     return jsonError("Request body must be JSON.", 400);
   }
 
-  return createSummaryResponse(body, req.signal, release);
+  return createSummaryResponse(body, req.signal, release, deadline);
 }
