@@ -22,7 +22,7 @@ vi.mock("@/lib/firebase/id-token", () => ({
 const summaryBody = {
   document: "This is a long enough document to summarize for the test harness.",
   language: "english",
-  modelName: "gpt-4.1",
+  modelName: "gpt-6.1-sol",
   numWords: 20,
 };
 
@@ -45,7 +45,42 @@ describe("POST /api/summarize", () => {
   const previous = {
     fixtures: process.env.SUMMARIZE_USE_FIXTURES,
     openai: process.env.OPENAI_API_KEY,
+    anthropic: process.env.ANTHROPIC_API_KEY,
+    google: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+    xai: process.env.XAI_API_KEY,
   };
+
+  function restoreEnv(key: string, value: string | undefined) {
+    if (value === undefined) delete process.env[key];
+    else process.env[key] = value;
+  }
+
+  function streamOnce(text: string) {
+    streamText.mockImplementation(() => ({
+      fullStream: (async function* () {
+        yield { type: "text-delta", text };
+      })(),
+    }));
+  }
+
+  type StreamCall = {
+    model?: { modelId?: string; provider?: string };
+    temperature?: number;
+    topP?: number;
+    topK?: number;
+    presencePenalty?: number;
+    frequencyPenalty?: number;
+    stopSequences?: string[];
+  };
+
+  async function liveCall(modelName: string): Promise<StreamCall> {
+    delete process.env.SUMMARIZE_USE_FIXTURES;
+    streamOnce("ok");
+    const res = await POST(postSummary({ ...summaryBody, modelName }));
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe("ok");
+    return streamText.mock.calls[0]?.[0] as StreamCall;
+  }
 
   beforeEach(() => {
     summaryLimiter.reset();
@@ -54,13 +89,18 @@ describe("POST /api/summarize", () => {
     verifyFirebaseIdToken.mockClear();
     process.env.SUMMARIZE_USE_FIXTURES = "true";
     delete process.env.OPENAI_API_KEY;
+    delete process.env.ANTHROPIC_API_KEY;
+    delete process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+    delete process.env.XAI_API_KEY;
   });
 
   afterEach(() => {
     if (previous.fixtures === undefined) delete process.env.SUMMARIZE_USE_FIXTURES;
     else process.env.SUMMARIZE_USE_FIXTURES = previous.fixtures;
-    if (previous.openai === undefined) delete process.env.OPENAI_API_KEY;
-    else process.env.OPENAI_API_KEY = previous.openai;
+    restoreEnv("OPENAI_API_KEY", previous.openai);
+    restoreEnv("ANTHROPIC_API_KEY", previous.anthropic);
+    restoreEnv("GOOGLE_GENERATIVE_AI_API_KEY", previous.google);
+    restoreEnv("XAI_API_KEY", previous.xai);
   });
 
   it("returns 401 when the request has no token", async () => {
@@ -284,5 +324,63 @@ describe("POST /api/summarize", () => {
     const body = await res.json();
     expect(body.error).toBe("Failed to generate summary.");
     expect(res.headers.get("content-type")).toContain("application/json");
+  });
+
+  it("calls GPT-6.1 Sol through the OpenAI Responses API without sampling params", async () => {
+    process.env.OPENAI_API_KEY = "test-key";
+    const call = await liveCall("gpt-6.1-sol");
+    expect(call.model?.modelId).toBe("gpt-6.1-sol");
+    expect(call.model?.provider).toBe("openai.responses");
+    expect(call.temperature).toBeUndefined();
+  });
+
+  it("calls Claude Opus 5.5 without temperature, top_p, or top_k", async () => {
+    process.env.ANTHROPIC_API_KEY = "test-key";
+    const call = await liveCall("claude-opus-5-5");
+    expect(call.model?.modelId).toBe("claude-opus-5-5");
+    expect(call.model?.provider).toMatch(/^anthropic/);
+    expect(call).not.toHaveProperty("temperature");
+    expect(call).not.toHaveProperty("topP");
+    expect(call).not.toHaveProperty("topK");
+  });
+
+  it("calls Gemini 4 Argon with the summary temperature", async () => {
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY = "test-key";
+    const call = await liveCall("gemini-4-argon");
+    expect(call.model?.modelId).toBe("gemini-4-argon");
+    expect(call.model?.provider).toMatch(/^google/);
+    expect(call.temperature).toBe(0.7);
+  });
+
+  it("calls Grok 4.7 through the xAI Responses API without penalties or stop", async () => {
+    process.env.XAI_API_KEY = "test-key";
+    const call = await liveCall("grok-4.7");
+    expect(call.model?.modelId).toBe("grok-4.7");
+    expect(call.model?.provider).toBe("xai.responses");
+    expect(call).not.toHaveProperty("presencePenalty");
+    expect(call).not.toHaveProperty("frequencyPenalty");
+    expect(call).not.toHaveProperty("stopSequences");
+  });
+
+  it.each([
+    ["gpt-4.1", "gpt-6.1-sol", "OPENAI_API_KEY"],
+    ["claude-sonnet-4.5", "claude-opus-5-5", "ANTHROPIC_API_KEY"],
+    ["gemini-2.5-flash", "gemini-4-argon", "GOOGLE_GENERATIVE_AI_API_KEY"],
+    ["grok-beta", "grok-4.7", "XAI_API_KEY"],
+    ["mistral-large", "gpt-6.1-sol", "OPENAI_API_KEY"],
+    ["llama-v3p3-70b", "gpt-6.1-sol", "OPENAI_API_KEY"],
+  ])("serves retired id %s with successor %s", async (legacy, successor, envKey) => {
+    process.env[envKey] = "test-key";
+    const call = await liveCall(legacy);
+    expect(call.model?.modelId).toBe(successor);
+  });
+
+  it("rejects a retired id when its successor's provider key is missing", async () => {
+    delete process.env.SUMMARIZE_USE_FIXTURES;
+    const res = await POST(postSummary({ ...summaryBody, modelName: "claude-sonnet-4.5" }));
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(String(body.error)).toMatch(/not configured/i);
+    expect(streamText).not.toHaveBeenCalled();
   });
 });

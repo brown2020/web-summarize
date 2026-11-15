@@ -15,6 +15,7 @@ import {
 import { useSummarizerStore } from "@/store/summarizerStore";
 import { Language, type ModelOption } from "@/types/summarizer";
 import { capitalize, clampNumber } from "@/lib/utils";
+import { resolveModelId } from "@/lib/model-ids";
 
 type SummarizerFormProps = {
   onSubmit: () => Promise<void>;
@@ -142,7 +143,10 @@ export function SummarizerForm({ onSubmit, modelOptions }: SummarizerFormProps) 
           <Label htmlFor="model-select">Select Model</Label>
           <Select
             value={modelName}
-            onValueChange={setModelName}
+            onValueChange={(value) => {
+              const modelId = resolveModelId(value);
+              if (modelId) setModelName(modelId);
+            }}
             disabled={!hasModels}
           >
             <SelectTrigger id="model-select">

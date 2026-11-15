@@ -12,6 +12,7 @@ import { PROGRESS_STEPS, VALIDATION } from "@/constants/app";
 import { useEffect, useMemo, useState } from "react";
 import { LanguageSchema } from "@/types/summarizer";
 import { clampNumber } from "@/lib/utils";
+import { resolveModelId } from "@/lib/model-ids";
 import type { ModelOption } from "@/types/summarizer";
 
 type ScrapeSummarizeProps = {
@@ -294,8 +295,9 @@ export default function ScrapeSummarize({ modelOptions }: ScrapeSummarizeProps) 
       const parsedLanguage = LanguageSchema.safeParse(nextLanguage);
       if (parsedLanguage.success) setLanguage(parsedLanguage.data);
     }
-    if (typeof nextModel === "string" && nextModel.length > 0) {
-      setModelName(nextModel);
+    if (nextModel) {
+      const modelId = resolveModelId(nextModel);
+      if (modelId) setModelName(modelId);
     }
     if (nextWords) {
       const parsedWords = Number(nextWords);

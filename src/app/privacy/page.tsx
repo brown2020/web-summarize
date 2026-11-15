@@ -64,7 +64,7 @@ export default function PrivacyPage() {
           </h2>
           <p>
             To generate summaries, we send extracted text to AI providers such
-            as OpenAI, Anthropic, Google, Mistral, or Fireworks AI. These
+            as OpenAI, Anthropic, Google, or xAI. These
             providers have their own privacy policies governing how they handle
             data. We recommend reviewing their policies if you have concerns
             about how your data is processed.

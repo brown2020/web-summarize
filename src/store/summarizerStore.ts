@@ -1,11 +1,12 @@
 import { create } from "zustand";
-import { Language, SummarizerState } from "@/types/summarizer";
+import { Language, ModelId, SummarizerState } from "@/types/summarizer";
 import { PROGRESS_STEPS, VALIDATION } from "@/constants/app";
+import { DEFAULT_MODEL_ID } from "@/constants/summarizer";
 
 interface SummarizerActions {
   setUrl: (url: string) => void;
   setLanguage: (language: Language) => void;
-  setModelName: (modelName: string) => void;
+  setModelName: (modelName: ModelId) => void;
   setNumWords: (numWords: number) => void;
   setExtractedText: (extractedText: string) => void;
   setSummary: (summary: string) => void;
@@ -19,7 +20,7 @@ type SummarizerStore = SummarizerState & SummarizerActions;
 const initialState: SummarizerState = {
   url: "",
   language: "english",
-  modelName: "gpt-4.1",
+  modelName: DEFAULT_MODEL_ID,
   numWords: VALIDATION.DEFAULT_WORDS,
   extractedText: "",
   summary: "",

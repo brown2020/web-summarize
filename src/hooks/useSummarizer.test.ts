@@ -94,7 +94,7 @@ describe("useSummarizer main flow", () => {
     useSummarizerStore.setState({
       url: "https://example.com/story",
       language: "english",
-      modelName: "gpt-4.1",
+      modelName: "gpt-6.1-sol",
       numWords: 40,
       extractedText: "",
       summary: "",
@@ -149,7 +149,7 @@ describe("useSummarizer main flow", () => {
     expect(JSON.parse(String(summaryInit?.body))).toEqual({
       document: extracted,
       language: "english",
-      modelName: "gpt-4.1",
+      modelName: "gpt-6.1-sol",
       numWords: 40,
     });
 

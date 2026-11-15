@@ -1,10 +1,10 @@
-import { ModelMessage, streamText } from "ai";
-import { createOpenAI, openai } from "@ai-sdk/openai";
+import { type CallSettings, ModelMessage, streamText } from "ai";
+import { openai } from "@ai-sdk/openai";
 import { google } from "@ai-sdk/google";
-import { mistral } from "@ai-sdk/mistral";
 import { anthropic } from "@ai-sdk/anthropic";
+import { createXai } from "@ai-sdk/xai";
 import { z } from "zod";
-import { LanguageSchema } from "@/types/summarizer";
+import { LanguageSchema, type ModelId } from "@/types/summarizer";
 import { TIMEOUTS, VALIDATION } from "@/constants/app";
 import { assertModelAvailable } from "@/lib/model-availability";
 import {
@@ -12,13 +12,39 @@ import {
   summarizeFixturesEnabled,
 } from "@/lib/summarize-fixtures";
 
-/** Deferred Fireworks client — avoid module-scope init with empty secrets. */
-function getFireworks() {
-  return createOpenAI({
-    name: "fireworks",
-    baseURL: "https://api.fireworks.ai/inference/v1",
-    apiKey: process.env.FIREWORKS_API_KEY ?? "",
-  });
+/** Deferred xAI client — avoid module-scope init with empty secrets. */
+function getXai() {
+  return createXai({ apiKey: process.env.XAI_API_KEY ?? "" });
+}
+
+type SamplingSettings = Pick<
+  CallSettings,
+  "temperature" | "topP" | "topK" | "presencePenalty" | "frequencyPenalty" | "stopSequences"
+>;
+
+const SUMMARY_SAMPLING: SamplingSettings = { temperature: 0.7 };
+
+/**
+ * Sampling params each provider rejects for these models.
+ * GPT-6.1 Sol always reasons (effort cannot be `none`), so OpenAI ignores sampling.
+ * Claude Opus 5.5 always uses adaptive thinking and rejects temperature/top_p/top_k.
+ * Grok 4.7 rejects presence_penalty/frequency_penalty/stop.
+ */
+const UNSUPPORTED_SAMPLING: Record<ModelId, ReadonlyArray<keyof SamplingSettings>> = {
+  "gpt-6.1-sol": ["temperature", "topP", "topK"],
+  "claude-opus-5-5": ["temperature", "topP", "topK"],
+  "gemini-4-argon": [],
+  "grok-4.7": ["presencePenalty", "frequencyPenalty", "stopSequences"],
+};
+
+function samplingSettingsFor(
+  modelId: ModelId,
+  settings: SamplingSettings = SUMMARY_SAMPLING
+): SamplingSettings {
+  const unsupported = new Set<string>(UNSUPPORTED_SAMPLING[modelId]);
+  return Object.fromEntries(
+    Object.entries(settings).filter(([key]) => !unsupported.has(key))
+  ) as SamplingSettings;
 }
 
 const GenerateSummarySchema = z.object({
@@ -38,27 +64,24 @@ function jsonError(message: string, status: number) {
   });
 }
 
-function getModel(modelName: string) {
-  assertModelAvailable(modelName);
+function getModel(modelId: ModelId) {
+  switch (modelId) {
+    case "gpt-6.1-sol":
+      return openai.responses("gpt-6.1-sol");
 
-  switch (modelName) {
-    case "gpt-4.1":
-      return openai("gpt-4.1");
+    case "claude-opus-5-5":
+      return anthropic("claude-opus-5-5");
 
-    case "claude-sonnet-4.5":
-      return anthropic("claude-sonnet-4-5");
+    case "gemini-4-argon":
+      return google("gemini-4-argon");
 
-    case "gemini-2.5-flash":
-      return google("gemini-2.5-flash");
+    case "grok-4.7":
+      return getXai().responses("grok-4.7");
 
-    case "mistral-large":
-      return mistral("mistral-large-latest");
-
-    case "llama-v3p3-70b":
-      return getFireworks()("accounts/fireworks/models/llama-v3p3-70b-instruct");
-
-    default:
-      throw new Error("Unsupported model selected.");
+    default: {
+      const unsupported: never = modelId;
+      throw new Error(`Unsupported model selected: ${String(unsupported)}`);
+    }
   }
 }
 
@@ -151,8 +174,9 @@ export async function createSummaryResponse(
 
     const { document, language, modelName, numWords } = validationResult.data;
 
+    let modelId: ModelId;
     try {
-      assertModelAvailable(modelName);
+      modelId = assertModelAvailable(modelName).value;
     } catch (error) {
       finish();
       const message = error instanceof Error ? error.message : "Unsupported model selected.";
@@ -176,10 +200,10 @@ export async function createSummaryResponse(
     ]);
     const prompt = summaryPrompt(document, language, numWords);
     const result = streamText({
-      model: getModel(modelName),
+      model: getModel(modelId),
       system: prompt.system,
       messages: prompt.messages,
-      temperature: 0.7,
+      ...samplingSettingsFor(modelId),
       abortSignal,
     });
 

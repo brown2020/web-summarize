@@ -1,9 +1,9 @@
 import { MODEL_CATALOG } from "@/constants/summarizer";
 import type { ModelCatalogItem, ModelOption } from "@/types/summarizer";
+import { resolveModelId } from "@/lib/model-ids";
 import { summarizeFixturesEnabled } from "@/lib/summarize-fixtures";
 
-const hasConfiguredKey = (envKey?: string) =>
-  !envKey || Boolean(process.env[envKey]?.trim());
+const hasConfiguredKey = (envKey: string) => Boolean(process.env[envKey]?.trim());
 
 export function getAvailableModels(): ModelOption[] {
   if (summarizeFixturesEnabled()) {
@@ -15,9 +15,12 @@ export function getAvailableModels(): ModelOption[] {
 }
 
 function getModelCatalogItem(modelName: string): ModelCatalogItem | null {
-  return MODEL_CATALOG.find((model) => model.value === modelName) ?? null;
+  const modelId = resolveModelId(modelName);
+  if (!modelId) return null;
+  return MODEL_CATALOG.find((model) => model.value === modelId) ?? null;
 }
 
+/** Resolves legacy ids to their successor and checks that its provider key is set. */
 export function assertModelAvailable(modelName: string): ModelCatalogItem {
   const model = getModelCatalogItem(modelName);
   if (!model) {

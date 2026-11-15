@@ -1,24 +1,39 @@
-import { LANGUAGES, type ModelCatalogItem } from "@/types/summarizer";
+import { LANGUAGES, type ModelCatalogItem, type ModelId } from "@/types/summarizer";
 
 // Re-export LANGUAGES from types (single source of truth)
 export { LANGUAGES };
 
+export const DEFAULT_MODEL_ID: ModelId = "gpt-6.1-sol";
+
+/** Values are the native provider API ids sent to each SDK. */
 export const MODEL_CATALOG: ModelCatalogItem[] = [
-  { value: "gpt-4.1", label: "GPT-4.1 (OpenAI)", envKey: "OPENAI_API_KEY" },
+  { value: "gpt-6.1-sol", label: "GPT-6.1 Sol (OpenAI)", envKey: "OPENAI_API_KEY" },
   {
-    value: "claude-sonnet-4.5",
-    label: "Claude Sonnet 4.5 (Anthropic)",
+    value: "claude-opus-5-5",
+    label: "Claude Opus 5.5 (Anthropic)",
     envKey: "ANTHROPIC_API_KEY",
   },
   {
-    value: "gemini-2.5-flash",
-    label: "Gemini 2.5 Flash (Google)",
+    value: "gemini-4-argon",
+    label: "Gemini 4 Argon (Google)",
     envKey: "GOOGLE_GENERATIVE_AI_API_KEY",
   },
-  { value: "mistral-large", label: "Mistral Large (Mistral)", envKey: "MISTRAL_API_KEY" },
-  {
-    value: "llama-v3p3-70b",
-    label: "Llama 3.3 70B (Fireworks)",
-    envKey: "FIREWORKS_API_KEY",
-  },
+  { value: "grok-4.7", label: "Grok 4.7 (xAI)", envKey: "XAI_API_KEY" },
 ];
+
+/**
+ * Successors for ids that shared links or stale tabs may still send.
+ * Checked in order after an exact catalog match. Retired providers with no
+ * remaining catalog entry (Mistral, Fireworks/Llama) resolve to the default.
+ */
+export const LEGACY_MODEL_SUCCESSORS: ReadonlyArray<readonly [RegExp, ModelId]> = [
+  [/^(?:gpt-|o\d+(?:-|$)|chatgpt-)/, "gpt-6.1-sol"],
+  [/^claude-/, "claude-opus-5-5"],
+  [/^gemini-/, "gemini-4-argon"],
+  [/^grok-/, "grok-4.7"],
+  [/^(?:mistral|open-mistral|ministral|codestral|pixtral|magistral)-/, DEFAULT_MODEL_ID],
+  [/^(?:llama-|accounts\/fireworks\/)/, DEFAULT_MODEL_ID],
+];
+
+/** Vercel AI Gateway prefixes accepted on incoming ids (`spacexai/` is xAI's gateway form). */
+export const GATEWAY_MODEL_PREFIX = /^(?:openai|anthropic|google|spacexai|xai|mistral|fireworks)\//;
